@@ -6,6 +6,7 @@ import { BottomBar } from "./components/BottomBar";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
+import { DiffView } from "./components/DiffView";
 import { useState, useCallback, useRef } from "react";
 import { api } from "./lib/api";
 
@@ -49,6 +50,22 @@ function AppContent() {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
+
+  const handleGutterClick = useCallback(
+    (params: { path: string; line: number; side: "LEFT" | "RIGHT" }) => {
+      // Will be fully wired in Phase 4 with inline comment form
+      console.log("Start comment:", params);
+    },
+    []
+  );
+
+  const handleReplyToComment = useCallback(
+    async (commentId: number, body: string) => {
+      const comment = await api.replyToComment(commentId, body);
+      addComment(comment);
+    },
+    [addComment]
+  );
 
   const handlePostComment = useCallback(
     async (body: string) => {
@@ -119,7 +136,7 @@ function AppContent() {
         )}
 
         {/* Center — Diff View */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-hidden">
           {activeCommit && (
             <div className="sticky top-0 z-10 px-4 py-2 bg-zen-surface border-b border-zen-border">
               <button
@@ -133,29 +150,13 @@ function AppContent() {
               </span>
             </div>
           )}
-          <div className="p-4">
-            {orderedFiles.map((file) => (
-              <div
-                key={file.path}
-                ref={(el) => handleFileRef(file.path, el)}
-                className="mb-4 border border-zen-border rounded-lg overflow-hidden"
-              >
-                <div className="px-4 py-2 bg-zen-surface border-b border-zen-border flex items-center gap-2">
-                  <span className="text-xs font-mono text-zen-text">
-                    {file.path}
-                  </span>
-                  {file.previousPath && (
-                    <span className="text-xs text-zen-muted">
-                      &larr; {file.previousPath}
-                    </span>
-                  )}
-                </div>
-                <pre className="p-4 text-xs font-mono text-zen-muted overflow-x-auto whitespace-pre">
-                  {file.patch || "(binary file or no changes)"}
-                </pre>
-              </div>
-            ))}
-          </div>
+          <DiffView
+            files={orderedFiles}
+            comments={data.comments}
+            onGutterClick={handleGutterClick}
+            onReplyToComment={handleReplyToComment}
+            fileRef={handleFileRef}
+          />
         </div>
 
         {/* Right Sidebar — Context Panel */}
