@@ -3,11 +3,14 @@ import { FileTree } from "./components/FileTree";
 import { ContextPanel } from "./components/ContextPanel";
 import { ProgressBar } from "./components/ProgressBar";
 import { BottomBar } from "./components/BottomBar";
+import { DiffView } from "./components/DiffView";
+import { CommandPalette, type Command } from "./components/CommandPalette";
+import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
-import { DiffView } from "./components/DiffView";
-import { useState, useCallback, useRef } from "react";
+import { useKeyboard } from "./hooks/useKeyboard";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { api } from "./lib/api";
 
 function AppContent() {
@@ -29,8 +32,26 @@ function AppContent() {
   const prKey = data ? `${data.pr.number}` : undefined;
   const { isReviewed, toggleReviewed, reviewedCount } =
     useReviewProgress(prKey);
-  const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [pendingComment, setPendingComment] = useState<{
+    path: string;
+    line: number;
+    side: string;
+  } | null>(null);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Clear error after 5 seconds
+  useEffect(() => {
+    if (actionError) {
+      const t = setTimeout(() => setActionError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [actionError]);
+
+  const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
 
   const handleFileRef = useCallback(
     (path: string, el: HTMLDivElement | null) => {
@@ -43,34 +64,86 @@ function AppContent() {
     []
   );
 
-  const handleFileClick = useCallback((path: string) => {
-    setCurrentFile(path);
+  const scrollToFile = useCallback((path: string) => {
     const el = fileRefs.current.get(path);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
 
+  const handleFileClick = useCallback(
+    (path: string) => {
+      const idx = orderedFiles.findIndex((f) => f.path === path);
+      if (idx >= 0) setCurrentFileIndex(idx);
+      scrollToFile(path);
+    },
+    [orderedFiles, scrollToFile]
+  );
+
+  const navigateFile = useCallback(
+    (delta: number) => {
+      setCurrentFileIndex((prev) => {
+        const next = Math.max(
+          0,
+          Math.min(prev + delta, orderedFiles.length - 1)
+        );
+        const file = orderedFiles[next];
+        if (file) scrollToFile(file.path);
+        return next;
+      });
+    },
+    [orderedFiles, scrollToFile]
+  );
+
   const handleGutterClick = useCallback(
     (params: { path: string; line: number; side: "LEFT" | "RIGHT" }) => {
-      // Will be fully wired in Phase 4 with inline comment form
-      console.log("Start comment:", params);
+      setPendingComment({
+        path: params.path,
+        line: params.line,
+        side: params.side,
+      });
     },
     []
   );
 
+  const handleSubmitInlineComment = useCallback(
+    async (params: {
+      body: string;
+      path: string;
+      line: number;
+      side: string;
+    }) => {
+      try {
+        const comment = await api.postInlineComment(params);
+        addComment(comment);
+        setPendingComment(null);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+      }
+    },
+    [addComment]
+  );
+
   const handleReplyToComment = useCallback(
     async (commentId: number, body: string) => {
-      const comment = await api.replyToComment(commentId, body);
-      addComment(comment);
+      try {
+        const comment = await api.replyToComment(commentId, body);
+        addComment(comment);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to post reply");
+      }
     },
     [addComment]
   );
 
   const handlePostComment = useCallback(
     async (body: string) => {
-      const comment = await api.postComment(body);
-      addComment(comment);
+      try {
+        const comment = await api.postComment(body);
+        addComment(comment);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+      }
     },
     [addComment]
   );
@@ -80,9 +153,68 @@ function AppContent() {
       event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
       body?: string
     ) => {
-      await api.submitReview(event, body);
+      try {
+        await api.submitReview(event, body);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to submit review");
+      }
     },
     []
+  );
+
+  const commands = useMemo<Command[]>(
+    () => [
+      {
+        id: "toggle-left",
+        label: "Toggle file tree",
+        shortcut: "Cmd+[",
+        action: toggleLeft,
+      },
+      {
+        id: "toggle-right",
+        label: "Toggle context panel",
+        shortcut: "Cmd+]",
+        action: toggleRight,
+      },
+      {
+        id: "toggle-mode",
+        label: `Switch to ${mode === "bottom-up" ? "top-down" : "bottom-up"} order`,
+        action: toggleMode,
+      },
+      {
+        id: "shortcuts",
+        label: "Show keyboard shortcuts",
+        shortcut: "?",
+        action: () => setHelpOpen(true),
+      },
+    ],
+    [toggleLeft, toggleRight, toggleMode, mode]
+  );
+
+  useKeyboard(
+    useMemo(
+      () => ({
+        nextFile: () => navigateFile(1),
+        prevFile: () => navigateFile(-1),
+        markReviewed: () => {
+          if (currentFile) toggleReviewed(currentFile);
+        },
+        toggleLeftSidebar: toggleLeft,
+        toggleRightSidebar: toggleRight,
+        openCommandPalette: () => setCommandPaletteOpen(true),
+        submitReview: () => {
+          // Removed: Cmd+Enter should not auto-approve. Use the Submit button.
+        },
+        showHelp: () => setHelpOpen(true),
+      }),
+      [
+        navigateFile,
+        currentFile,
+        toggleReviewed,
+        toggleLeft,
+        toggleRight,
+      ]
+    )
   );
 
   if (loading) {
@@ -126,7 +258,6 @@ function AppContent() {
           </div>
         )}
 
-        {/* Left edge indicator when collapsed */}
         {!leftOpen && (
           <div
             onClick={toggleLeft}
@@ -153,7 +284,10 @@ function AppContent() {
           <DiffView
             files={orderedFiles}
             comments={data.comments}
+            pendingComment={pendingComment}
             onGutterClick={handleGutterClick}
+            onSubmitInlineComment={handleSubmitInlineComment}
+            onCancelComment={() => setPendingComment(null)}
             onReplyToComment={handleReplyToComment}
             fileRef={handleFileRef}
           />
@@ -173,7 +307,6 @@ function AppContent() {
           </div>
         )}
 
-        {/* Right edge indicator when collapsed */}
         {!rightOpen && (
           <div
             onClick={toggleRight}
@@ -184,6 +317,22 @@ function AppContent() {
       </div>
 
       <BottomBar onSubmitReview={handleSubmitReview} />
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        files={orderedFiles}
+        onFileSelect={handleFileClick}
+        commands={commands}
+      />
+
+      <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {actionError && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-zen-del-text/20 text-zen-del-text text-xs rounded-md border border-zen-del-text/30 z-50">
+          {actionError}
+        </div>
+      )}
     </div>
   );
 }
