@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { PRComment } from "../lib/api";
+import { Markdown } from "./Markdown";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CommentThreadProps {
   comments: PRComment[];
@@ -36,11 +39,15 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
   }
 
   return (
-    <div className="border border-zen-border rounded-md bg-zen-bg my-1 mx-2 overflow-hidden">
+    <div
+      className={cn(
+        "border border-border rounded-md bg-card my-1 mx-2 overflow-hidden"
+      )}
+    >
       {comments.map((c) => (
         <div
           key={c.id}
-          className="px-3 py-2 border-b border-zen-border last:border-b-0"
+          className="px-3 py-2 border-b border-border last:border-b-0"
         >
           <div className="flex items-center gap-2 mb-1">
             <img
@@ -48,15 +55,15 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
               className="w-4 h-4 rounded-full"
               alt=""
             />
-            <span className="text-xs font-medium text-zen-text">
+            <span className="text-xs font-medium text-foreground">
               {c.author.login}
             </span>
-            <span className="text-xs text-zen-muted">
+            <span className="text-xs text-muted-foreground">
               {formatTime(c.createdAt)}
             </span>
           </div>
-          <div className="text-xs text-zen-text/80 whitespace-pre-wrap">
-            {c.body}
+          <div className="text-xs text-foreground/80">
+            <Markdown content={c.body} />
           </div>
         </div>
       ))}
@@ -65,7 +72,11 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
           value={replyBody}
           onChange={(e) => setReplyBody(e.target.value)}
           placeholder="Reply..."
-          className="flex-1 bg-zen-surface border border-zen-border rounded px-2 py-1 text-xs text-zen-text placeholder:text-zen-muted/50 focus:outline-none focus:border-zen-accent"
+          className={cn(
+            "flex-1 bg-card border border-border rounded px-2 py-1 text-xs",
+            "text-foreground placeholder:text-muted-foreground/50",
+            "focus:outline-none focus:border-primary"
+          )}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -73,13 +84,14 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
             }
           }}
         />
-        <button
+        <Button
           onClick={handleReply}
           disabled={!replyBody.trim() || replying}
-          className="px-2 py-1 text-xs bg-zen-accent text-white rounded disabled:opacity-40"
+          size="sm"
+          variant="default"
         >
           Reply
-        </button>
+        </Button>
       </div>
     </div>
   );

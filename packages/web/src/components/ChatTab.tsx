@@ -1,5 +1,8 @@
 import { useState, type FormEvent } from "react";
 import type { PRComment } from "../lib/api";
+import { Markdown } from "./Markdown";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatTabProps {
   comments: PRComment[];
@@ -39,49 +42,52 @@ export function ChatTab({ comments, onPostComment }: ChatTabProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {prComments.length === 0 && (
-          <p className="text-sm text-zen-muted text-center py-4">
-            No comments yet.
-          </p>
-        )}
-        {prComments.map((comment) => (
-          <div key={comment.id} className="space-y-1">
-            <div className="flex items-center gap-2">
-              <img
-                src={comment.author.avatarUrl}
-                alt={comment.author.login}
-                className="w-5 h-5 rounded-full"
-              />
-              <span className="text-xs font-medium text-zen-text">
-                {comment.author.login}
-              </span>
-              <span className="text-xs text-zen-muted">
-                {formatTime(comment.createdAt)}
-              </span>
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-3">
+          {prComments.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No comments yet.
+            </p>
+          )}
+          {prComments.map((comment) => (
+            <div key={comment.id} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <img
+                  src={comment.author.avatarUrl}
+                  alt={comment.author.login}
+                  className="w-5 h-5 rounded-full"
+                />
+                <span className="text-xs font-medium text-foreground">
+                  {comment.author.login}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatTime(comment.createdAt)}
+                </span>
+              </div>
+              <div className="pl-7">
+                <Markdown content={comment.body} />
+              </div>
             </div>
-            <div className="text-sm text-zen-text/80 whitespace-pre-wrap break-words pl-7">
-              {comment.body}
-            </div>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={handleSubmit} className="p-3 border-t border-zen-border">
+          ))}
+        </div>
+      </ScrollArea>
+
+      <form onSubmit={handleSubmit} className="p-3 border-t border-border">
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Leave a comment..."
           rows={3}
-          className="w-full bg-zen-bg border border-zen-border rounded-md px-3 py-2 text-sm text-zen-text placeholder:text-zen-muted/50 resize-none focus:outline-none focus:border-zen-accent"
+          className="w-full bg-card border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:border-primary"
         />
         <div className="flex justify-end mt-2">
-          <button
+          <Button
             type="submit"
+            size="sm"
             disabled={!body.trim() || posting}
-            className="px-3 py-1.5 text-xs font-medium bg-zen-accent text-white rounded-md disabled:opacity-40 hover:bg-zen-accent/80 transition-colors"
           >
             {posting ? "Posting..." : "Comment"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

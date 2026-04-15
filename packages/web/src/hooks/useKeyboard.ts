@@ -9,6 +9,7 @@ interface KeyboardActions {
   openCommandPalette: () => void;
   submitReview: () => void;
   showHelp: () => void;
+  toggleDiffStyle: () => void;
 }
 
 export function useKeyboard(actions: KeyboardActions) {
@@ -44,6 +45,9 @@ export function useKeyboard(actions: KeyboardActions) {
       } else if (e.key === "?" && !meta) {
         e.preventDefault();
         actions.showHelp();
+      } else if (e.key === "v" && !meta) {
+        e.preventDefault();
+        actions.toggleDiffStyle();
       }
     },
     [actions]

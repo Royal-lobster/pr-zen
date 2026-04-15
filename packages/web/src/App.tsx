@@ -10,8 +10,18 @@ import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { api } from "./lib/api";
+import { Toaster, toast } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Columns2,
+  Rows2,
+} from "lucide-react";
 
 function AppContent() {
   const {
@@ -40,16 +50,19 @@ function AppContent() {
   } | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [diffStyle, setDiffStyle] = useState<"unified" | "split">(() => {
+    const stored = localStorage.getItem("pr-zen:diff-style");
+    return stored === "split" ? "split" : "unified";
+  });
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Clear error after 5 seconds
-  useEffect(() => {
-    if (actionError) {
-      const t = setTimeout(() => setActionError(null), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [actionError]);
+  const toggleDiffStyle = useCallback(() => {
+    setDiffStyle((prev) => {
+      const next = prev === "unified" ? "split" : "unified";
+      localStorage.setItem("pr-zen:diff-style", next);
+      return next;
+    });
+  }, []);
 
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
 
@@ -117,8 +130,9 @@ function AppContent() {
         const comment = await api.postInlineComment(params);
         addComment(comment);
         setPendingComment(null);
+        toast.success("Comment posted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+        toast.error(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
     [addComment]
@@ -129,8 +143,9 @@ function AppContent() {
       try {
         const comment = await api.replyToComment(commentId, body);
         addComment(comment);
+        toast.success("Reply posted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post reply");
+        toast.error(e instanceof Error ? e.message : "Failed to post reply");
       }
     },
     [addComment]
@@ -141,8 +156,9 @@ function AppContent() {
       try {
         const comment = await api.postComment(body);
         addComment(comment);
+        toast.success("Comment posted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+        toast.error(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
     [addComment]
@@ -155,8 +171,11 @@ function AppContent() {
     ) => {
       try {
         await api.submitReview(event, body);
+        toast.success("Review submitted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to submit review");
+        toast.error(
+          e instanceof Error ? e.message : "Failed to submit review"
+        );
       }
     },
     []
@@ -182,13 +201,18 @@ function AppContent() {
         action: toggleMode,
       },
       {
+        id: "toggle-diff-style",
+        label: "Toggle split/unified diff",
+        action: toggleDiffStyle,
+      },
+      {
         id: "shortcuts",
         label: "Show keyboard shortcuts",
         shortcut: "?",
         action: () => setHelpOpen(true),
       },
     ],
-    [toggleLeft, toggleRight, toggleMode, mode]
+    [toggleLeft, toggleRight, toggleMode, mode, toggleDiffStyle]
   );
 
   useKeyboard(
@@ -206,6 +230,7 @@ function AppContent() {
           // Removed: Cmd+Enter should not auto-approve. Use the Submit button.
         },
         showHelp: () => setHelpOpen(true),
+        toggleDiffStyle,
       }),
       [
         navigateFile,
@@ -213,6 +238,7 @@ function AppContent() {
         toggleReviewed,
         toggleLeft,
         toggleRight,
+        toggleDiffStyle,
       ]
     )
   );
@@ -220,7 +246,7 @@ function AppContent() {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="text-zen-muted text-sm">Loading PR...</div>
+        <div className="text-muted-foreground text-sm">Loading PR...</div>
       </div>
     );
   }
@@ -228,7 +254,7 @@ function AppContent() {
   if (error || !data) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <div className="text-zen-del-text text-sm">
+        <div className="text-destructive text-sm">
           {error ?? "Failed to load PR"}
         </div>
       </div>
@@ -243,76 +269,125 @@ function AppContent() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar — File Tree */}
+        {/* Left Sidebar -- File Tree */}
         {leftOpen && (
-          <div className="w-64 shrink-0 border-r border-zen-border bg-zen-surface overflow-hidden">
-            <FileTree
-              files={orderedFiles}
-              currentFile={currentFile}
-              isReviewed={isReviewed}
-              onToggleReviewed={toggleReviewed}
-              onFileClick={handleFileClick}
-              mode={mode}
-              onToggleMode={toggleMode}
-            />
+          <div className="w-64 shrink-0 border-r border-border bg-card overflow-hidden flex flex-col">
+            <div className="flex items-center justify-end px-2 py-1 border-b border-border">
+              <button
+                onClick={toggleLeft}
+                className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+                title="Hide file tree (Cmd+[)"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <FileTree
+                files={orderedFiles}
+                currentFile={currentFile}
+                isReviewed={isReviewed}
+                onToggleReviewed={toggleReviewed}
+                onFileClick={handleFileClick}
+                mode={mode}
+                onToggleMode={toggleMode}
+              />
+            </div>
           </div>
         )}
 
         {!leftOpen && (
-          <div
-            onClick={toggleLeft}
-            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors shrink-0"
-            title="Show file tree (Cmd+[)"
-          />
+          <div className="flex flex-col items-center py-2 border-r border-border bg-card">
+            <button
+              onClick={toggleLeft}
+              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+              title="Show file tree (Cmd+[)"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
+          </div>
         )}
 
-        {/* Center — Diff View */}
-        <div className="flex-1 overflow-hidden">
+        {/* Center -- Diff View */}
+        <div className="flex-1 overflow-hidden flex flex-col">
           {activeCommit && (
-            <div className="sticky top-0 z-10 px-4 py-2 bg-zen-surface border-b border-zen-border">
+            <div className="sticky top-0 z-10 px-4 py-2 bg-card border-b border-border">
               <button
                 onClick={() => setActiveCommit(null)}
-                className="text-xs text-zen-accent hover:text-zen-accent/80"
+                className="text-xs text-primary hover:text-primary/80"
               >
                 &larr; Back to full diff
               </button>
-              <span className="text-xs text-zen-muted ml-2">
+              <span className="text-xs text-muted-foreground ml-2">
                 Viewing commit {activeCommit.slice(0, 7)}
               </span>
             </div>
           )}
-          <DiffView
-            files={orderedFiles}
-            comments={data.comments}
-            pendingComment={pendingComment}
-            onGutterClick={handleGutterClick}
-            onSubmitInlineComment={handleSubmitInlineComment}
-            onCancelComment={() => setPendingComment(null)}
-            onReplyToComment={handleReplyToComment}
-            fileRef={handleFileRef}
-          />
+
+          <div className="flex items-center justify-end px-4 py-1 border-b border-border bg-card">
+            <button
+              onClick={toggleDiffStyle}
+              className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              title={`Switch to ${diffStyle === "unified" ? "split" : "unified"} diff`}
+            >
+              {diffStyle === "unified" ? (
+                <Columns2 className="h-3.5 w-3.5" />
+              ) : (
+                <Rows2 className="h-3.5 w-3.5" />
+              )}
+              {diffStyle === "unified" ? "Split" : "Unified"}
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            <DiffView
+              files={orderedFiles}
+              comments={data.comments}
+              pendingComment={pendingComment}
+              onGutterClick={handleGutterClick}
+              onSubmitInlineComment={handleSubmitInlineComment}
+              onCancelComment={() => setPendingComment(null)}
+              onReplyToComment={handleReplyToComment}
+              fileRef={handleFileRef}
+              diffStyle={diffStyle}
+            />
+          </div>
         </div>
 
-        {/* Right Sidebar — Context Panel */}
+        {/* Right Sidebar -- Context Panel */}
         {rightOpen && (
-          <div className="w-80 shrink-0 border-l border-zen-border bg-zen-surface overflow-hidden">
-            <ContextPanel
-              pr={data.pr}
-              comments={data.comments}
-              commits={data.commits}
-              activeCommit={activeCommit}
-              onSelectCommit={setActiveCommit}
-              onPostComment={handlePostComment}
-            />
+          <div className="w-80 shrink-0 border-l border-border bg-card overflow-hidden flex flex-col">
+            <div className="flex items-center justify-start px-2 py-1 border-b border-border">
+              <button
+                onClick={toggleRight}
+                className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+                title="Hide context panel (Cmd+])"
+              >
+                <PanelRightClose className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <ContextPanel
+                pr={data.pr}
+                comments={data.comments}
+                commits={data.commits}
+                activeCommit={activeCommit}
+                onSelectCommit={setActiveCommit}
+                onPostComment={handlePostComment}
+              />
+            </div>
           </div>
         )}
 
         {!rightOpen && (
-          <div
-            onClick={toggleRight}
-            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors shrink-0"
-            title="Show context panel (Cmd+])"
-          />
+          <div className="flex flex-col items-center py-2 border-l border-border bg-card">
+            <button
+              onClick={toggleRight}
+              className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+              title="Show context panel (Cmd+])"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -328,11 +403,7 @@ function AppContent() {
 
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
-      {actionError && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-zen-del-text/20 text-zen-del-text text-xs rounded-md border border-zen-del-text/30 z-50">
-          {actionError}
-        </div>
-      )}
+      <Toaster theme="dark" />
     </div>
   );
 }
@@ -340,7 +411,9 @@ function AppContent() {
 export function App() {
   return (
     <PRProvider>
-      <AppContent />
+      <TooltipProvider>
+        <AppContent />
+      </TooltipProvider>
     </PRProvider>
   );
 }

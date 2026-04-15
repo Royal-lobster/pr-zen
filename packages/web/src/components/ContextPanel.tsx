@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { PRTab } from "./PRTab";
 import { ChatTab } from "./ChatTab";
 import { CommitsTab } from "./CommitsTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { PRComment, PRCommit, PRMetadata } from "../lib/api";
 
 interface ContextPanelProps {
@@ -13,8 +13,6 @@ interface ContextPanelProps {
   onPostComment: (body: string) => Promise<void>;
 }
 
-type Tab = "pr" | "chat" | "commits";
-
 export function ContextPanel({
   pr,
   comments,
@@ -23,44 +21,32 @@ export function ContextPanel({
   onSelectCommit,
   onPostComment,
 }: ContextPanelProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("pr");
-
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "pr", label: "PR" },
-    { id: "chat", label: "Chat" },
-    { id: "commits", label: "Commits" },
-  ];
-
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex border-b border-zen-border">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${
-              activeTab === tab.id
-                ? "text-zen-accent border-b-2 border-zen-accent"
-                : "text-zen-muted hover:text-zen-text"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === "pr" && <PRTab pr={pr} />}
-        {activeTab === "chat" && (
-          <ChatTab comments={comments} onPostComment={onPostComment} />
-        )}
-        {activeTab === "commits" && (
-          <CommitsTab
-            commits={commits}
-            activeCommit={activeCommit}
-            onSelectCommit={onSelectCommit}
-          />
-        )}
-      </div>
-    </div>
+    <Tabs defaultValue="pr" className="h-full flex flex-col">
+      <TabsList className="w-full rounded-none border-b border-border bg-card">
+        <TabsTrigger value="pr" className="flex-1 text-xs">
+          PR
+        </TabsTrigger>
+        <TabsTrigger value="chat" className="flex-1 text-xs">
+          Chat
+        </TabsTrigger>
+        <TabsTrigger value="commits" className="flex-1 text-xs">
+          Commits
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="pr" className="flex-1 overflow-y-auto mt-0">
+        <PRTab pr={pr} />
+      </TabsContent>
+      <TabsContent value="chat" className="flex-1 overflow-hidden mt-0">
+        <ChatTab comments={comments} onPostComment={onPostComment} />
+      </TabsContent>
+      <TabsContent value="commits" className="flex-1 overflow-y-auto mt-0">
+        <CommitsTab
+          commits={commits}
+          activeCommit={activeCommit}
+          onSelectCommit={onSelectCommit}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
