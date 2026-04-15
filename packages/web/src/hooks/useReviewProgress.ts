@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 interface ReviewProgress {
   reviewed: Set<string>;
@@ -34,6 +34,11 @@ function saveReviewed(reviewed: Set<string>, prUrl?: string) {
 
 export function useReviewProgress(prUrl?: string): ReviewProgress {
   const [reviewed, setReviewed] = useState(() => loadReviewed(prUrl));
+
+  // Reload when prUrl changes (e.g., from undefined to actual PR key)
+  useEffect(() => {
+    setReviewed(loadReviewed(prUrl));
+  }, [prUrl]);
 
   const toggleReviewed = useCallback(
     (path: string) => {

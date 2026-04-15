@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   api,
   type PRPayload,
@@ -26,6 +26,7 @@ export function usePR(): PRState {
   const [commitFiles, setCommitFiles] = useState<PRFile[] | null>(null);
   const [commitFileOrder, setCommitFileOrder] = useState<string[] | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dataLoaded = useRef(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -33,6 +34,7 @@ export function usePR(): PRState {
       setError(null);
       const payload = await api.getPR();
       setData(payload);
+      dataLoaded.current = true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch PR");
     } finally {
@@ -69,6 +71,7 @@ export function usePR(): PRState {
 
   useEffect(() => {
     pollRef.current = setInterval(async () => {
+      if (!dataLoaded.current) return;
       try {
         const { comments: newComments } = await api.poll();
         if (newComments.length > 0) {
@@ -90,8 +93,14 @@ export function usePR(): PRState {
     };
   }, []);
 
-  const currentFiles = commitFiles ?? data?.files ?? [];
-  const currentFileOrder = commitFileOrder ?? data?.fileOrder ?? [];
+  const currentFiles = useMemo(
+    () => commitFiles ?? data?.files ?? [],
+    [commitFiles, data?.files]
+  );
+  const currentFileOrder = useMemo(
+    () => commitFileOrder ?? data?.fileOrder ?? [],
+    [commitFileOrder, data?.fileOrder]
+  );
 
   return {
     data,

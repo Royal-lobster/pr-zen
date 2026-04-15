@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 interface ShortcutsHelpProps {
   open: boolean;
   onClose: () => void;
@@ -6,16 +8,23 @@ interface ShortcutsHelpProps {
 const shortcuts = [
   { key: "j / k", description: "Next / previous file" },
   { key: "x", description: "Mark current file reviewed" },
-  { key: "c", description: "Comment on current hunk" },
   { key: "Cmd+K", description: "Command palette" },
   { key: "Cmd+[", description: "Toggle left sidebar" },
   { key: "Cmd+]", description: "Toggle right sidebar" },
-  { key: "Cmd+Enter", description: "Submit review" },
   { key: "Esc", description: "Close overlay / cancel" },
   { key: "?", description: "Show this help" },
 ];
 
 export function ShortcutsHelp({ open, onClose }: ShortcutsHelpProps) {
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (

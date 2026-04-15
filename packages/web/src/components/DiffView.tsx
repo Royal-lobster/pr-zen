@@ -171,11 +171,11 @@ export function DiffView({
               }}
               lineAnnotations={annotations}
               renderAnnotation={(ann) =>
-                ann.metadata.isPending ? (
+                ann.metadata.isPending && pendingComment ? (
                   <InlineCommentForm
                     path={file.path}
-                    line={pendingComment!.line}
-                    side={pendingComment!.side}
+                    line={pendingComment.line}
+                    side={pendingComment.side}
                     onSubmit={onSubmitInlineComment}
                     onCancel={onCancelComment}
                   />

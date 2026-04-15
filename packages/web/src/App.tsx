@@ -10,7 +10,7 @@ import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { api } from "./lib/api";
 
 function AppContent() {
@@ -40,7 +40,16 @@ function AppContent() {
   } | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Clear error after 5 seconds
+  useEffect(() => {
+    if (actionError) {
+      const t = setTimeout(() => setActionError(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [actionError]);
 
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
 
@@ -104,25 +113,37 @@ function AppContent() {
       line: number;
       side: string;
     }) => {
-      const comment = await api.postInlineComment(params);
-      addComment(comment);
-      setPendingComment(null);
+      try {
+        const comment = await api.postInlineComment(params);
+        addComment(comment);
+        setPendingComment(null);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+      }
     },
     [addComment]
   );
 
   const handleReplyToComment = useCallback(
     async (commentId: number, body: string) => {
-      const comment = await api.replyToComment(commentId, body);
-      addComment(comment);
+      try {
+        const comment = await api.replyToComment(commentId, body);
+        addComment(comment);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to post reply");
+      }
     },
     [addComment]
   );
 
   const handlePostComment = useCallback(
     async (body: string) => {
-      const comment = await api.postComment(body);
-      addComment(comment);
+      try {
+        const comment = await api.postComment(body);
+        addComment(comment);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+      }
     },
     [addComment]
   );
@@ -132,7 +153,11 @@ function AppContent() {
       event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
       body?: string
     ) => {
-      await api.submitReview(event, body);
+      try {
+        await api.submitReview(event, body);
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : "Failed to submit review");
+      }
     },
     []
   );
@@ -174,13 +199,12 @@ function AppContent() {
         markReviewed: () => {
           if (currentFile) toggleReviewed(currentFile);
         },
-        startComment: () => {
-          // Use gutter utility button to start inline comments
-        },
         toggleLeftSidebar: toggleLeft,
         toggleRightSidebar: toggleRight,
         openCommandPalette: () => setCommandPaletteOpen(true),
-        submitReview: () => handleSubmitReview("APPROVE"),
+        submitReview: () => {
+          // Removed: Cmd+Enter should not auto-approve. Use the Submit button.
+        },
         showHelp: () => setHelpOpen(true),
       }),
       [
@@ -189,7 +213,6 @@ function AppContent() {
         toggleReviewed,
         toggleLeft,
         toggleRight,
-        handleSubmitReview,
       ]
     )
   );
@@ -304,6 +327,12 @@ function AppContent() {
       />
 
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {actionError && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-zen-del-text/20 text-zen-del-text text-xs rounded-md border border-zen-del-text/30 z-50">
+          {actionError}
+        </div>
+      )}
     </div>
   );
 }

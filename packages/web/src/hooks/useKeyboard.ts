@@ -4,7 +4,6 @@ interface KeyboardActions {
   nextFile: () => void;
   prevFile: () => void;
   markReviewed: () => void;
-  startComment: () => void;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
   openCommandPalette: () => void;
@@ -30,9 +29,6 @@ export function useKeyboard(actions: KeyboardActions) {
       } else if (e.key === "x" && !meta) {
         e.preventDefault();
         actions.markReviewed();
-      } else if (e.key === "c" && !meta) {
-        e.preventDefault();
-        actions.startComment();
       } else if (meta && e.key === "[") {
         e.preventDefault();
         actions.toggleLeftSidebar();
