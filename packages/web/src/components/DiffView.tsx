@@ -6,15 +6,30 @@ import {
 } from "@pierre/diffs/react";
 import type { PRFile, PRComment } from "../lib/api";
 import { CommentThread } from "./CommentThread";
+import { InlineCommentForm } from "./InlineCommentForm";
+
+interface PendingComment {
+  path: string;
+  line: number;
+  side: string;
+}
 
 interface DiffViewProps {
   files: PRFile[];
   comments: PRComment[];
+  pendingComment: PendingComment | null;
   onGutterClick: (params: {
     path: string;
     line: number;
     side: "LEFT" | "RIGHT";
   }) => void;
+  onSubmitInlineComment: (params: {
+    body: string;
+    path: string;
+    line: number;
+    side: string;
+  }) => Promise<void>;
+  onCancelComment: () => void;
   onReplyToComment: (commentId: number, body: string) => Promise<void>;
   fileRef?: (path: string, el: HTMLDivElement | null) => void;
 }
@@ -22,7 +37,10 @@ interface DiffViewProps {
 export function DiffView({
   files,
   comments,
+  pendingComment,
   onGutterClick,
+  onSubmitInlineComment,
+  onCancelComment,
   onReplyToComment,
   fileRef,
 }: DiffViewProps) {
@@ -100,7 +118,8 @@ export function DiffView({
         }
 
         const annotations: DiffLineAnnotation<{
-          thread: PRComment[];
+          thread?: PRComment[];
+          isPending?: boolean;
         }>[] = [];
         for (const [key, thread] of threadMap) {
           const [lineStr, side] = key.split(":");
@@ -108,6 +127,19 @@ export function DiffView({
             lineNumber: parseInt(lineStr, 10),
             side: side === "LEFT" ? "deletions" : "additions",
             metadata: { thread },
+          });
+        }
+
+        // Add pending comment annotation
+        if (
+          pendingComment &&
+          pendingComment.path === file.path
+        ) {
+          annotations.push({
+            lineNumber: pendingComment.line,
+            side:
+              pendingComment.side === "LEFT" ? "deletions" : "additions",
+            metadata: { isPending: true },
           });
         }
 
@@ -138,12 +170,22 @@ export function DiffView({
                 overflow: "scroll",
               }}
               lineAnnotations={annotations}
-              renderAnnotation={(ann) => (
-                <CommentThread
-                  comments={ann.metadata.thread}
-                  onReply={onReplyToComment}
-                />
-              )}
+              renderAnnotation={(ann) =>
+                ann.metadata.isPending ? (
+                  <InlineCommentForm
+                    path={file.path}
+                    line={pendingComment!.line}
+                    side={pendingComment!.side}
+                    onSubmit={onSubmitInlineComment}
+                    onCancel={onCancelComment}
+                  />
+                ) : ann.metadata.thread ? (
+                  <CommentThread
+                    comments={ann.metadata.thread}
+                    onReply={onReplyToComment}
+                  />
+                ) : null
+              }
               renderHeaderPrefix={() => (
                 <div className="flex items-center gap-2 px-3 py-1.5">
                   <span className="text-xs font-mono text-zen-text">
