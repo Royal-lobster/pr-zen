@@ -199,7 +199,7 @@ export function startServer(config: ServerConfig): {
   });
 
   return {
-    port: server.port,
+    port: server.port ?? config.port,
     stop: () => server.stop(),
   };
 }

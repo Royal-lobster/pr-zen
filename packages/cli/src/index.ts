@@ -53,9 +53,10 @@ function parseArgs(): { prNumber: number; owner: string; repo: string } {
         "Error: Could not detect GitHub repo from git remote. Use --repo owner/repo."
       );
       process.exit(1);
+      return { prNumber: 0, owner: "", repo: "" }; // unreachable
     }
-    owner = match[1];
-    repo = match[2];
+    owner = match[1]!;
+    repo = match[2]!;
   }
 
   return { prNumber, owner, repo };

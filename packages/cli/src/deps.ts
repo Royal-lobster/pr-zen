@@ -35,9 +35,9 @@ export async function getFileOrder(
 
     // Build edges only between changed files
     const edges: [string, string][] = [];
-    for (const [file, deps] of Object.entries(fullGraph)) {
+    for (const file of Object.keys(fullGraph)) {
       if (!changedSet.has(file)) continue;
-      for (const dep of deps) {
+      for (const dep of fullGraph[file]) {
         if (changedSet.has(dep)) {
           // edge: file depends on dep -> dep should come before file
           edges.push([dep, file]);
