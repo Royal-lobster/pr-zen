@@ -80,28 +80,28 @@ export async function fetchPR(
 ): Promise<PRPayload> {
   const kit = await getOctokit();
 
-  const [prRes, filesRes, commentsRes, reviewCommentsRes, commitsRes] =
+  const [prRes, filesData, commentsData, reviewCommentsData, commitsData] =
     await Promise.all([
       kit.pulls.get({ owner, repo, pull_number: prNumber }),
-      kit.pulls.listFiles({
+      kit.paginate(kit.pulls.listFiles, {
         owner,
         repo,
         pull_number: prNumber,
-        per_page: 300,
+        per_page: 100,
       }),
-      kit.issues.listComments({
+      kit.paginate(kit.issues.listComments, {
         owner,
         repo,
         issue_number: prNumber,
         per_page: 100,
       }),
-      kit.pulls.listReviewComments({
+      kit.paginate(kit.pulls.listReviewComments, {
         owner,
         repo,
         pull_number: prNumber,
         per_page: 100,
       }),
-      kit.pulls.listCommits({
+      kit.paginate(kit.pulls.listCommits, {
         owner,
         repo,
         pull_number: prNumber,
@@ -129,15 +129,19 @@ export async function fetchPR(
       : (prRes.data.state as "open" | "closed"),
   };
 
-  const files: PRFile[] = filesRes.data.map((f) => ({
+  const knownStatuses = new Set(["added", "modified", "removed", "renamed"]);
+
+  const files: PRFile[] = filesData.map((f) => ({
     path: f.filename,
-    status: f.status as PRFile["status"],
+    status: knownStatuses.has(f.status ?? "")
+      ? (f.status as PRFile["status"])
+      : "modified",
     patch: f.patch ?? "",
     previousPath:
       f.status === "renamed" ? f.previous_filename : undefined,
   }));
 
-  const prComments: PRComment[] = commentsRes.data.map((c) => ({
+  const prComments: PRComment[] = commentsData.map((c) => ({
     id: c.id,
     author: {
       login: c.user?.login ?? "unknown",
@@ -148,7 +152,7 @@ export async function fetchPR(
     type: "pr" as const,
   }));
 
-  const inlineComments: PRComment[] = reviewCommentsRes.data.map((c) => ({
+  const inlineComments: PRComment[] = reviewCommentsData.map((c) => ({
     id: c.id,
     author: {
       login: c.user?.login ?? "unknown",
@@ -168,7 +172,7 @@ export async function fetchPR(
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
-  const commits: PRCommit[] = commitsRes.data.map((c) => ({
+  const commits: PRCommit[] = commitsData.map((c) => ({
     sha: c.sha,
     message: c.commit.message,
     author: { login: c.author?.login ?? c.commit.author?.name ?? "unknown" },
@@ -184,10 +188,13 @@ export async function fetchCommitDiff(
   sha: string
 ): Promise<PRFile[]> {
   const kit = await getOctokit();
+  const knownStatuses = new Set(["added", "modified", "removed", "renamed"]);
   const res = await kit.repos.getCommit({ owner, repo, ref: sha });
   return (res.data.files ?? []).map((f) => ({
     path: f.filename,
-    status: f.status as PRFile["status"],
+    status: knownStatuses.has(f.status ?? "")
+      ? (f.status as PRFile["status"])
+      : "modified",
     patch: f.patch ?? "",
     previousPath:
       f.status === "renamed" ? f.previous_filename : undefined,

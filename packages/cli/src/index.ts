@@ -64,7 +64,12 @@ function parseArgs(): { prNumber: number; owner: string; repo: string } {
 
 async function main() {
   const { prNumber, owner, repo } = parseArgs();
-  const repoRoot = resolve(".");
+  const repoRootResult = Bun.spawnSync(
+    ["git", "rev-parse", "--show-toplevel"],
+    { stdout: "pipe", stderr: "pipe" }
+  );
+  const repoRoot =
+    new TextDecoder().decode(repoRootResult.stdout).trim() || resolve(".");
   const webDistPath = join(import.meta.dir, "../../web/dist");
   const port = 4173;
 

@@ -9,7 +9,7 @@ import {
   fetchCommentsSince,
 } from "./github";
 import { getFileOrder } from "./deps";
-import { join } from "path";
+import { join, resolve } from "path";
 
 interface ServerConfig {
   owner: string;
@@ -39,9 +39,12 @@ export function startServer(config: ServerConfig): {
     const url = new URL(req.url);
     const path = url.pathname;
 
-    // CORS headers for local development
+    // CORS headers restricted to localhost origins
+    const origin = req.headers.get("origin") ?? "";
+    const isLocalhost =
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": isLocalhost ? origin : "",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
@@ -83,6 +86,12 @@ export function startServer(config: ServerConfig): {
 
       if (path === "/api/comments" && req.method === "POST") {
         const { body } = (await req.json()) as { body: string };
+        if (typeof body !== "string" || body.trim().length === 0) {
+          return Response.json(
+            { error: "body must be a non-empty string" },
+            { status: 400, headers: corsHeaders }
+          );
+        }
         const comment = await postComment(
           config.owner,
           config.repo,
@@ -100,6 +109,23 @@ export function startServer(config: ServerConfig): {
           line: number;
           side: string;
         };
+        if (
+          typeof params.body !== "string" ||
+          params.body.trim().length === 0 ||
+          typeof params.path !== "string" ||
+          params.path.trim().length === 0 ||
+          typeof params.line !== "number" ||
+          !Number.isInteger(params.line) ||
+          (params.side !== "LEFT" && params.side !== "RIGHT")
+        ) {
+          return Response.json(
+            {
+              error:
+                "body (non-empty string), path (non-empty string), line (integer), and side (LEFT|RIGHT) are required",
+            },
+            { status: 400, headers: corsHeaders }
+          );
+        }
         const comment = await postInlineComment(
           config.owner,
           config.repo,
@@ -115,6 +141,20 @@ export function startServer(config: ServerConfig): {
           body: string;
           commentId: number;
         };
+        if (
+          typeof body !== "string" ||
+          body.trim().length === 0 ||
+          typeof commentId !== "number" ||
+          !Number.isInteger(commentId)
+        ) {
+          return Response.json(
+            {
+              error:
+                "body (non-empty string) and commentId (integer) are required",
+            },
+            { status: 400, headers: corsHeaders }
+          );
+        }
         const comment = await replyToComment(
           config.owner,
           config.repo,
@@ -131,6 +171,20 @@ export function startServer(config: ServerConfig): {
           event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT";
           body?: string;
         };
+        const validEvents = new Set([
+          "APPROVE",
+          "REQUEST_CHANGES",
+          "COMMENT",
+        ]);
+        if (!validEvents.has(event)) {
+          return Response.json(
+            {
+              error:
+                "event must be one of APPROVE, REQUEST_CHANGES, or COMMENT",
+            },
+            { status: 400, headers: corsHeaders }
+          );
+        }
         await submitReview(
           config.owner,
           config.repo,
@@ -167,7 +221,13 @@ export function startServer(config: ServerConfig): {
 
       // Static file serving for the web UI
       const filePath = path === "/" ? "/index.html" : path;
-      const fullPath = join(config.webDistPath, filePath);
+      const fullPath = resolve(join(config.webDistPath, filePath));
+      if (!fullPath.startsWith(resolve(config.webDistPath))) {
+        return Response.json(
+          { error: "Forbidden" },
+          { status: 403, headers: corsHeaders }
+        );
+      }
       const file = Bun.file(fullPath);
       if (await file.exists()) {
         return new Response(file);
