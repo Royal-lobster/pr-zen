@@ -1,0 +1,18 @@
+{
+  "name": "@pr-zen/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pr-zen": "./src/index.ts"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "madge": "^8.0.0",
+    "toposort": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/toposort": "^2.0.7",
+    "@types/bun": "latest"
+  }
+}
