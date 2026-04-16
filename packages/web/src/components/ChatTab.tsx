@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useState, useRef, useEffect, useMemo, type FormEvent } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Kbd } from "./ui/kbd";
@@ -28,7 +28,7 @@ export function ChatTab({ comments, onPostComment }: ChatTabProps) {
   const [posting, setPosting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const prComments = comments.filter((c) => c.type === "pr");
+  const prComments = useMemo(() => comments.filter((c) => c.type === "pr"), [comments]);
 
   useEffect(() => {
     const el = scrollRef.current;

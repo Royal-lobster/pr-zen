@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 
+const STORAGE_PREFIX = "pr-zen:v1:reviewed:";
+const MAX_STORED_PRS = 20;
+
 interface ReviewProgress {
   reviewed: Set<string>;
   toggleReviewed: (path: string) => void;
@@ -7,13 +10,13 @@ interface ReviewProgress {
   reviewedCount: number;
 }
 
-function getStorageKey(prUrl?: string): string {
-  return `pr-zen:reviewed:${prUrl ?? "unknown"}`;
+function getStorageKey(prKey?: string): string {
+  return `${STORAGE_PREFIX}${prKey ?? "unknown"}`;
 }
 
-function loadReviewed(prUrl?: string): Set<string> {
+function loadReviewed(prKey?: string): Set<string> {
   try {
-    const raw = localStorage.getItem(getStorageKey(prUrl));
+    const raw = localStorage.getItem(getStorageKey(prKey));
     if (!raw) return new Set();
     return new Set(JSON.parse(raw) as string[]);
   } catch {
@@ -21,24 +24,41 @@ function loadReviewed(prUrl?: string): Set<string> {
   }
 }
 
-function saveReviewed(reviewed: Set<string>, prUrl?: string) {
+function saveReviewed(reviewed: Set<string>, prKey?: string) {
   try {
     localStorage.setItem(
-      getStorageKey(prUrl),
+      getStorageKey(prKey),
       JSON.stringify([...reviewed])
     );
+    pruneOldKeys();
   } catch {
     // localStorage full or unavailable
   }
 }
 
-export function useReviewProgress(prUrl?: string): ReviewProgress {
-  const [reviewed, setReviewed] = useState(() => loadReviewed(prUrl));
+function pruneOldKeys() {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(STORAGE_PREFIX)) keys.push(k);
+    }
+    if (keys.length > MAX_STORED_PRS) {
+      keys.sort();
+      const toRemove = keys.slice(0, keys.length - MAX_STORED_PRS);
+      for (const k of toRemove) localStorage.removeItem(k);
+    }
+  } catch {
+    // ignore
+  }
+}
 
-  // Reload when prUrl changes (e.g., from undefined to actual PR key)
+export function useReviewProgress(prKey?: string): ReviewProgress {
+  const [reviewed, setReviewed] = useState(() => loadReviewed(prKey));
+
   useEffect(() => {
-    setReviewed(loadReviewed(prUrl));
-  }, [prUrl]);
+    setReviewed(loadReviewed(prKey));
+  }, [prKey]);
 
   const toggleReviewed = useCallback(
     (path: string) => {
@@ -49,11 +69,11 @@ export function useReviewProgress(prUrl?: string): ReviewProgress {
         } else {
           next.add(path);
         }
-        saveReviewed(next, prUrl);
+        saveReviewed(next, prKey);
         return next;
       });
     },
-    [prUrl]
+    [prKey]
   );
 
   const isReviewed = useCallback(

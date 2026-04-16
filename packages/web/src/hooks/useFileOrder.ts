@@ -11,7 +11,7 @@ interface FileOrderState {
 
 function loadMode(): OrderingMode {
   try {
-    const val = localStorage.getItem("pr-zen:ordering-mode");
+    const val = localStorage.getItem("pr-zen:v1:ordering-mode");
     return val === "top-down" ? "top-down" : "bottom-up";
   } catch {
     return "bottom-up";
@@ -27,7 +27,7 @@ export function useFileOrder(
   const toggleMode = useCallback(() => {
     setMode((prev) => {
       const next = prev === "bottom-up" ? "top-down" : "bottom-up";
-      localStorage.setItem("pr-zen:ordering-mode", next);
+      localStorage.setItem("pr-zen:v1:ordering-mode", next);
       return next;
     });
   }, []);

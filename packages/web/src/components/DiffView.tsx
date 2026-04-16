@@ -99,29 +99,15 @@ export function DiffView({
         const fileComments = commentsByFile.get(file.path) ?? [];
 
         const threadMap = new Map<string, PRComment[]>();
+        const idToKey = new Map<number, string>();
         for (const c of fileComments) {
           if (!c.line) continue;
-          if (c.inReplyToId) {
-            let added = false;
-            for (const [, t] of threadMap) {
-              if (t.some((tc) => tc.id === c.inReplyToId)) {
-                t.push(c);
-                added = true;
-                break;
-              }
-            }
-            if (!added) {
-              const key = `${c.line}:${c.side ?? "RIGHT"}`;
-              const thread = threadMap.get(key) ?? [];
-              thread.push(c);
-              threadMap.set(key, thread);
-            }
-          } else {
-            const key = `${c.line}:${c.side ?? "RIGHT"}`;
-            const thread = threadMap.get(key) ?? [];
-            thread.push(c);
-            threadMap.set(key, thread);
-          }
+          const key = (c.inReplyToId != null ? idToKey.get(c.inReplyToId) : undefined)
+            ?? `${c.line}:${c.side ?? "RIGHT"}`;
+          const thread = threadMap.get(key) ?? [];
+          thread.push(c);
+          threadMap.set(key, thread);
+          idToKey.set(c.id, key);
         }
 
         const annotations: DiffLineAnnotation<{

@@ -18,22 +18,22 @@ function loadFromStorage(key: string, fallback: boolean): boolean {
 
 export function useSidebarState(): SidebarState {
   const [leftOpen, setLeftOpen] = useState(() =>
-    loadFromStorage("pr-zen:left-sidebar", true)
+    loadFromStorage("pr-zen:v1:left-sidebar", true)
   );
   const [rightOpen, setRightOpen] = useState(() =>
-    loadFromStorage("pr-zen:right-sidebar", true)
+    loadFromStorage("pr-zen:v1:right-sidebar", true)
   );
 
   const toggleLeft = useCallback(() => {
     setLeftOpen((prev) => {
-      localStorage.setItem("pr-zen:left-sidebar", String(!prev));
+      localStorage.setItem("pr-zen:v1:left-sidebar", String(!prev));
       return !prev;
     });
   }, []);
 
   const toggleRight = useCallback(() => {
     setRightOpen((prev) => {
-      localStorage.setItem("pr-zen:right-sidebar", String(!prev));
+      localStorage.setItem("pr-zen:v1:right-sidebar", String(!prev));
       return !prev;
     });
   }, []);

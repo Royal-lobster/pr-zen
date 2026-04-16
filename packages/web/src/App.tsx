@@ -3,7 +3,6 @@ import { FileTree } from "./components/FileTree";
 import { ContextPanel } from "./components/ContextPanel";
 import { ProgressBar } from "./components/ProgressBar";
 import { BottomBar } from "./components/BottomBar";
-import { DiffView } from "./components/DiffView";
 import { CommandPalette, type Command } from "./components/CommandPalette";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Button } from "./components/ui/button";
@@ -13,9 +12,13 @@ import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
 import { cn } from "./lib/utils";
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect, lazy, Suspense } from "react";
 import { api } from "./lib/api";
 import { ArrowLeft, Loader2, AlertCircle, X } from "lucide-react";
+
+const DiffView = lazy(() =>
+  import("./components/DiffView").then((m) => ({ default: m.DiffView }))
+);
 
 function LoadingScreen() {
   return (
@@ -226,29 +229,18 @@ function AppContent() {
     [toggleLeft, toggleRight, toggleMode, mode]
   );
 
-  useKeyboard(
-    useMemo(
-      () => ({
-        nextFile: () => navigateFile(1),
-        prevFile: () => navigateFile(-1),
-        markReviewed: () => {
-          if (currentFile) toggleReviewed(currentFile);
-        },
-        toggleLeftSidebar: toggleLeft,
-        toggleRightSidebar: toggleRight,
-        openCommandPalette: () => setCommandPaletteOpen(true),
-        submitReview: () => {},
-        showHelp: () => setHelpOpen(true),
-      }),
-      [
-        navigateFile,
-        currentFile,
-        toggleReviewed,
-        toggleLeft,
-        toggleRight,
-      ]
-    )
-  );
+  useKeyboard({
+    nextFile: () => navigateFile(1),
+    prevFile: () => navigateFile(-1),
+    markReviewed: () => {
+      if (currentFile) toggleReviewed(currentFile);
+    },
+    toggleLeftSidebar: toggleLeft,
+    toggleRightSidebar: toggleRight,
+    openCommandPalette: () => setCommandPaletteOpen(true),
+    submitReview: () => {},
+    showHelp: () => setHelpOpen(true),
+  });
 
   if (loading) return <LoadingScreen />;
   if (error || !data) return <ErrorScreen message={error ?? "Failed to load PR"} />;
@@ -305,6 +297,11 @@ function AppContent() {
             </div>
           )}
           <div className="flex-1 overflow-hidden">
+            <Suspense fallback={
+              <div className="flex-1 flex items-center justify-center h-full">
+                <Loader2 className="w-5 h-5 animate-spin text-zen-muted" />
+              </div>
+            }>
             <DiffView
               files={orderedFiles}
               comments={data.comments}
@@ -315,6 +312,7 @@ function AppContent() {
               onReplyToComment={handleReplyToComment}
               fileRef={handleFileRef}
             />
+            </Suspense>
           </div>
         </div>
 

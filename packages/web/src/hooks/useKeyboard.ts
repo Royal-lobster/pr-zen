@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 interface KeyboardActions {
   nextFile: () => void;
@@ -12,45 +12,45 @@ interface KeyboardActions {
 }
 
 export function useKeyboard(actions: KeyboardActions) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      // Don't handle shortcuts when typing in inputs
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
       const meta = e.metaKey || e.ctrlKey;
+      const a = actionsRef.current;
 
       if (e.key === "j" && !meta) {
         e.preventDefault();
-        actions.nextFile();
+        a.nextFile();
       } else if (e.key === "k" && !meta) {
         e.preventDefault();
-        actions.prevFile();
+        a.prevFile();
       } else if (e.key === "x" && !meta) {
         e.preventDefault();
-        actions.markReviewed();
+        a.markReviewed();
       } else if (meta && e.key === "[") {
         e.preventDefault();
-        actions.toggleLeftSidebar();
+        a.toggleLeftSidebar();
       } else if (meta && e.key === "]") {
         e.preventDefault();
-        actions.toggleRightSidebar();
+        a.toggleRightSidebar();
       } else if (meta && e.key === "k") {
         e.preventDefault();
-        actions.openCommandPalette();
+        a.openCommandPalette();
       } else if (meta && e.key === "Enter") {
         e.preventDefault();
-        actions.submitReview();
+        a.submitReview();
       } else if (e.key === "?" && !meta) {
         e.preventDefault();
-        actions.showHelp();
+        a.showHelp();
       }
-    },
-    [actions]
-  );
+    }
 
-  useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+  }, []);
 }
