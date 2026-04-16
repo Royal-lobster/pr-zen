@@ -80,8 +80,6 @@ export function CommandPalette({
     selected?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  if (!open) return null;
-
   const isFile = (id: string) => id.startsWith("file:");
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -100,15 +98,17 @@ export function CommandPalette({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[18vh] bg-black/60 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
-    >
-      <div
-        className="w-[520px] bg-zen-surface border border-zen-border rounded-xl shadow-overlay overflow-hidden animate-fade-in-up"
-        onClick={(e) => e.stopPropagation()}
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent
+        className="w-[520px] top-[18vh] translate-y-0 overflow-hidden"
         onKeyDown={handleKeyDown}
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
       >
+        <DialogTitle className="sr-only">Command Palette</DialogTitle>
+
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-zen-border">
           <Search className="w-4 h-4 text-zen-muted shrink-0" />
@@ -167,7 +167,7 @@ export function CommandPalette({
             <Kbd>{"\u21B5"}</Kbd> select
           </span>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
