@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface InlineCommentFormProps {
   path: string;
@@ -43,9 +45,11 @@ export function InlineCommentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border border-zen-border rounded-md bg-zen-bg my-1 mx-2 p-3"
+      className={cn(
+        "border border-border rounded-md bg-card my-1 mx-2 p-3"
+      )}
     >
-      <div className="text-xs text-zen-muted mb-2">
+      <div className="text-xs text-muted-foreground mb-2">
         {path}:{line}
       </div>
       <textarea
@@ -54,7 +58,11 @@ export function InlineCommentForm({
         onChange={(e) => setBody(e.target.value)}
         placeholder="Write a comment..."
         rows={3}
-        className="w-full bg-zen-surface border border-zen-border rounded px-3 py-2 text-xs text-zen-text placeholder:text-zen-muted/50 resize-none focus:outline-none focus:border-zen-accent"
+        className={cn(
+          "w-full bg-card border border-border rounded px-3 py-2 text-xs",
+          "text-foreground placeholder:text-muted-foreground/50",
+          "resize-none focus:outline-none focus:border-primary"
+        )}
         onKeyDown={(e) => {
           if (e.key === "Enter" && e.metaKey) {
             e.preventDefault();
@@ -66,20 +74,22 @@ export function InlineCommentForm({
         }}
       />
       <div className="flex justify-end gap-2 mt-2">
-        <button
+        <Button
           type="button"
           onClick={onCancel}
-          className="px-2 py-1 text-xs text-zen-muted hover:text-zen-text transition-colors"
+          variant="ghost"
+          size="sm"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           disabled={!body.trim() || submitting}
-          className="px-3 py-1 text-xs bg-zen-accent text-white rounded disabled:opacity-40"
+          size="sm"
+          variant="default"
         >
           {submitting ? "Posting..." : "Comment"}
-        </button>
+        </Button>
       </div>
     </form>
   );

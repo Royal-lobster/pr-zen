@@ -7,6 +7,7 @@ import {
 import type { PRFile, PRComment } from "../lib/api";
 import { CommentThread } from "./CommentThread";
 import { InlineCommentForm } from "./InlineCommentForm";
+import { cn } from "@/lib/utils";
 
 interface PendingComment {
   path: string;
@@ -32,6 +33,7 @@ interface DiffViewProps {
   onCancelComment: () => void;
   onReplyToComment: (commentId: number, body: string) => Promise<void>;
   fileRef?: (path: string, el: HTMLDivElement | null) => void;
+  diffStyle: "unified" | "split";
 }
 
 export function DiffView({
@@ -43,6 +45,7 @@ export function DiffView({
   onCancelComment,
   onReplyToComment,
   fileRef,
+  diffStyle,
 }: DiffViewProps) {
   // Group inline comments by file path
   const commentsByFile = useMemo(() => {
@@ -72,14 +75,14 @@ export function DiffView({
               key={file.path}
               ref={(el) => fileRef?.(file.path, el)}
               data-file-path={file.path}
-              className="border border-zen-border rounded-lg overflow-hidden"
+              className="border border-border rounded-lg overflow-hidden"
             >
-              <div className="px-4 py-2 bg-zen-surface border-b border-zen-border">
-                <span className="text-xs font-mono text-zen-text">
+              <div className="px-4 py-2 bg-card border-b border-border">
+                <span className="text-xs font-mono text-foreground">
                   {file.path}
                 </span>
               </div>
-              <div className="p-4 text-xs text-zen-muted text-center">
+              <div className="p-4 text-xs text-muted-foreground text-center">
                 Binary file or no changes
               </div>
             </div>
@@ -103,7 +106,7 @@ export function DiffView({
               }
             }
             if (!added) {
-              // Orphaned reply — create standalone thread
+              // Orphaned reply -- create standalone thread
               const key = `${c.line}:${c.side ?? "RIGHT"}`;
               const thread = threadMap.get(key) ?? [];
               thread.push(c);
@@ -131,10 +134,7 @@ export function DiffView({
         }
 
         // Add pending comment annotation
-        if (
-          pendingComment &&
-          pendingComment.path === file.path
-        ) {
+        if (pendingComment && pendingComment.path === file.path) {
           annotations.push({
             lineNumber: pendingComment.line,
             side:
@@ -161,7 +161,7 @@ export function DiffView({
               patch={patchWithHeader}
               options={{
                 theme: "pierre-dark",
-                diffStyle: "unified",
+                diffStyle: diffStyle,
                 diffIndicators: "bars",
                 hunkSeparators: "line-info-basic",
                 expandUnchanged: true,
@@ -187,24 +187,39 @@ export function DiffView({
                 ) : null
               }
               renderHeaderPrefix={() => (
-                <div className="flex items-center gap-2 px-3 py-1.5">
-                  <span className="text-xs font-mono text-zen-text">
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5",
+                    "bg-card border-b border-border"
+                  )}
+                >
+                  <span className="text-xs font-mono text-foreground">
                     {file.path}
                   </span>
                   {file.previousPath && (
-                    <span className="text-xs text-zen-muted">
+                    <span className="text-xs text-muted-foreground">
                       &larr; {file.previousPath}
                     </span>
                   )}
                 </div>
               )}
-              onGutterUtilityClick={(range) => {
-                onGutterClick({
-                  path: file.path,
-                  line: range.start,
-                  side: "RIGHT",
-                });
-              }}
+              renderGutterUtility={(getHoveredLine) => (
+                <button
+                  className="flex items-center justify-center w-5 h-5 rounded text-primary hover:bg-primary/20 text-xs font-bold"
+                  onClick={() => {
+                    const hovered = getHoveredLine();
+                    if (hovered) {
+                      onGutterClick({
+                        path: file.path,
+                        line: hovered.lineNumber,
+                        side: hovered.side === "deletions" ? "LEFT" : "RIGHT",
+                      });
+                    }
+                  }}
+                >
+                  +
+                </button>
+              )}
             />
           </div>
         );
