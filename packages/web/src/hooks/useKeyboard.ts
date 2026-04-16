@@ -9,6 +9,7 @@ interface KeyboardActions {
   openCommandPalette: () => void;
   submitReview: () => void;
   showHelp: () => void;
+  toggleDiffStyle: () => void;
 }
 
 export function useKeyboard(actions: KeyboardActions) {

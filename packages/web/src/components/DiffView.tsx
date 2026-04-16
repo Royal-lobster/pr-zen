@@ -10,6 +10,7 @@ import { cn } from "../lib/utils";
 import type { PRFile, PRComment } from "../lib/api";
 import { CommentThread } from "./CommentThread";
 import { InlineCommentForm } from "./InlineCommentForm";
+import { cn } from "@/lib/utils";
 
 interface PendingComment {
   path: string;
@@ -35,6 +36,7 @@ interface DiffViewProps {
   onCancelComment: () => void;
   onReplyToComment: (commentId: number, body: string) => Promise<void>;
   fileRef?: (path: string, el: HTMLDivElement | null) => void;
+  diffStyle: "unified" | "split";
 }
 
 const statusBadgeVariant: Record<string, "success" | "accent" | "destructive" | "warn"> = {
@@ -53,6 +55,7 @@ export function DiffView({
   onCancelComment,
   onReplyToComment,
   fileRef,
+  diffStyle,
 }: DiffViewProps) {
   const commentsByFile = useMemo(() => {
     const map = new Map<string, PRComment[]>();
@@ -149,7 +152,7 @@ export function DiffView({
               patch={patchWithHeader}
               options={{
                 theme: "pierre-dark",
-                diffStyle: "unified",
+                diffStyle: diffStyle,
                 diffIndicators: "bars",
                 hunkSeparators: "line-info-basic",
                 expandUnchanged: true,

@@ -7,7 +7,6 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ reviewedCount, totalFiles }: ProgressBarProps) {
-  const [hovering, setHovering] = useState(false);
   const pct = totalFiles > 0 ? (reviewedCount / totalFiles) * 100 : 0;
   const isComplete = reviewedCount === totalFiles && totalFiles > 0;
 
@@ -47,7 +46,10 @@ export function ProgressBar({ reviewedCount, totalFiles }: ProgressBarProps) {
             </span>
           </div>
         </div>
-      )}
-    </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        {reviewedCount}/{totalFiles} files &mdash; {Math.round(pct)}%
+      </TooltipContent>
+    </Tooltip>
   );
 }

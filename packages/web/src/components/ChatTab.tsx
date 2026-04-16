@@ -4,6 +4,9 @@ import { Button } from "./ui/button";
 import { Kbd } from "./ui/kbd";
 import { cn } from "../lib/utils";
 import type { PRComment } from "../lib/api";
+import { Markdown } from "./Markdown";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatTabProps {
   comments: PRComment[];

@@ -79,7 +79,10 @@ function AppContent() {
   } | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [diffStyle, setDiffStyle] = useState<"unified" | "split">(() => {
+    const stored = localStorage.getItem("pr-zen:diff-style");
+    return stored === "split" ? "split" : "unified";
+  });
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
@@ -155,8 +158,9 @@ function AppContent() {
         const comment = await api.postInlineComment(params);
         addComment(comment);
         setPendingComment(null);
+        toast.success("Comment posted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+        toast.error(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
     [addComment]
@@ -167,8 +171,9 @@ function AppContent() {
       try {
         const comment = await api.replyToComment(commentId, body);
         addComment(comment);
+        toast.success("Reply posted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post reply");
+        toast.error(e instanceof Error ? e.message : "Failed to post reply");
       }
     },
     [addComment]
@@ -179,8 +184,9 @@ function AppContent() {
       try {
         const comment = await api.postComment(body);
         addComment(comment);
+        toast.success("Comment posted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post comment");
+        toast.error(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
     [addComment]
@@ -193,8 +199,11 @@ function AppContent() {
     ) => {
       try {
         await api.submitReview(event, body);
+        toast.success("Review submitted");
       } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to submit review");
+        toast.error(
+          e instanceof Error ? e.message : "Failed to submit review"
+        );
       }
     },
     []
@@ -220,13 +229,18 @@ function AppContent() {
         action: toggleMode,
       },
       {
+        id: "toggle-diff-style",
+        label: "Toggle split/unified diff",
+        action: toggleDiffStyle,
+      },
+      {
         id: "shortcuts",
         label: "Show keyboard shortcuts",
         shortcut: "?",
         action: () => setHelpOpen(true),
       },
     ],
-    [toggleLeft, toggleRight, toggleMode, mode]
+    [toggleLeft, toggleRight, toggleMode, mode, toggleDiffStyle]
   );
 
   useKeyboard({
@@ -380,7 +394,9 @@ function AppContent() {
 export function App() {
   return (
     <PRProvider>
-      <AppContent />
+      <TooltipProvider>
+        <AppContent />
+      </TooltipProvider>
     </PRProvider>
   );
 }

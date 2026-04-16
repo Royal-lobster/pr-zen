@@ -153,3 +153,53 @@
                 transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
+
+/* Markdown prose styling */
+.prose-zen {
+  @apply text-sm leading-relaxed;
+}
+.prose-zen h1 { @apply text-lg font-bold mt-4 mb-2; }
+.prose-zen h2 { @apply text-base font-semibold mt-3 mb-2; }
+.prose-zen h3 { @apply text-sm font-semibold mt-2 mb-1; }
+.prose-zen p { @apply mb-2; }
+.prose-zen ul { @apply list-disc pl-5 mb-2; }
+.prose-zen ol { @apply list-decimal pl-5 mb-2; }
+.prose-zen li { @apply mb-0.5; }
+.prose-zen code {
+  @apply px-1 py-0.5 rounded text-xs font-mono;
+  background: hsl(var(--secondary));
+}
+.prose-zen pre {
+  @apply p-3 rounded-md overflow-x-auto text-xs mb-2;
+  background: hsl(var(--secondary));
+}
+.prose-zen pre code {
+  @apply p-0 bg-transparent;
+}
+.prose-zen a {
+  color: hsl(var(--primary));
+  @apply underline underline-offset-2;
+}
+.prose-zen blockquote {
+  @apply border-l-2 pl-3 italic my-2;
+  border-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+.prose-zen table {
+  @apply w-full border-collapse mb-2 text-xs;
+}
+.prose-zen th, .prose-zen td {
+  @apply border px-2 py-1;
+  border-color: hsl(var(--border));
+}
+.prose-zen th {
+  background: hsl(var(--secondary));
+  @apply font-medium;
+}
+.prose-zen img {
+  @apply max-w-full rounded;
+}
+.prose-zen hr {
+  @apply my-3;
+  border-color: hsl(var(--border));
+}

@@ -3,8 +3,9 @@ import { Search, FileText, Zap } from "lucide-react";
 import { Kbd } from "./ui/kbd";
 import { cn } from "../lib/utils";
 import type { PRFile } from "../lib/api";
+import { cn } from "@/lib/utils";
 
-interface Command {
+interface CommandDef {
   id: string;
   label: string;
   shortcut?: string;
@@ -16,10 +17,10 @@ interface CommandPaletteProps {
   onClose: () => void;
   files: PRFile[];
   onFileSelect: (path: string) => void;
-  commands: Command[];
+  commands: CommandDef[];
 }
 
-export type { Command };
+export type { CommandDef as Command };
 
 export function CommandPalette({
   open,
@@ -36,22 +37,21 @@ export function CommandPalette({
   useEffect(() => {
     if (open) {
       setQuery("");
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
 
-  const allItems = useMemo(() => {
-    const fileItems: Command[] = files.map((f) => ({
-      id: `file:${f.path}`,
-      label: f.path,
-      action: () => {
-        onFileSelect(f.path);
-        onClose();
-      },
-    }));
-    return [...commands, ...fileItems];
-  }, [files, commands, onFileSelect, onClose]);
+  const fileItems = useMemo(
+    () =>
+      files.map((f) => ({
+        id: `file:${f.path}`,
+        label: f.path,
+        action: () => {
+          onFileSelect(f.path);
+          onClose();
+        },
+      })),
+    [files, onFileSelect, onClose]
+  );
 
   const filtered = useMemo(() => {
     if (!query) return allItems;
