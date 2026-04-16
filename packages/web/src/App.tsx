@@ -79,8 +79,9 @@ function AppContent() {
   } | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [diffStyle, setDiffStyle] = useState<"unified" | "split">(() => {
-    const stored = localStorage.getItem("pr-zen:diff-style");
+    const stored = localStorage.getItem("pr-zen:v1:diff-style");
     return stored === "split" ? "split" : "unified";
   });
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -93,6 +94,14 @@ function AppContent() {
   }, [actionError]);
 
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
+
+  const toggleDiffStyle = useCallback(() => {
+    setDiffStyle((prev) => {
+      const next = prev === "unified" ? "split" : "unified";
+      localStorage.setItem("pr-zen:v1:diff-style", next);
+      return next;
+    });
+  }, []);
 
   const handleFileRef = useCallback(
     (path: string, el: HTMLDivElement | null) => {
@@ -158,9 +167,8 @@ function AppContent() {
         const comment = await api.postInlineComment(params);
         addComment(comment);
         setPendingComment(null);
-        toast.success("Comment posted");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to post comment");
+        setActionError(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
     [addComment]
@@ -171,9 +179,8 @@ function AppContent() {
       try {
         const comment = await api.replyToComment(commentId, body);
         addComment(comment);
-        toast.success("Reply posted");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to post reply");
+        setActionError(e instanceof Error ? e.message : "Failed to post reply");
       }
     },
     [addComment]
@@ -184,9 +191,8 @@ function AppContent() {
       try {
         const comment = await api.postComment(body);
         addComment(comment);
-        toast.success("Comment posted");
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to post comment");
+        setActionError(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
     [addComment]
@@ -199,11 +205,8 @@ function AppContent() {
     ) => {
       try {
         await api.submitReview(event, body);
-        toast.success("Review submitted");
       } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : "Failed to submit review"
-        );
+        setActionError(e instanceof Error ? e.message : "Failed to submit review");
       }
     },
     []
@@ -254,6 +257,7 @@ function AppContent() {
     openCommandPalette: () => setCommandPaletteOpen(true),
     submitReview: () => {},
     showHelp: () => setHelpOpen(true),
+    toggleDiffStyle,
   });
 
   if (loading) return <LoadingScreen />;
@@ -316,16 +320,17 @@ function AppContent() {
                 <Loader2 className="w-5 h-5 animate-spin text-zen-muted" />
               </div>
             }>
-            <DiffView
-              files={orderedFiles}
-              comments={data.comments}
-              pendingComment={pendingComment}
-              onGutterClick={handleGutterClick}
-              onSubmitInlineComment={handleSubmitInlineComment}
-              onCancelComment={() => setPendingComment(null)}
-              onReplyToComment={handleReplyToComment}
-              fileRef={handleFileRef}
-            />
+              <DiffView
+                files={orderedFiles}
+                comments={data.comments}
+                pendingComment={pendingComment}
+                onGutterClick={handleGutterClick}
+                onSubmitInlineComment={handleSubmitInlineComment}
+                onCancelComment={() => setPendingComment(null)}
+                onReplyToComment={handleReplyToComment}
+                fileRef={handleFileRef}
+                diffStyle={diffStyle}
+              />
             </Suspense>
           </div>
         </div>
@@ -394,9 +399,7 @@ function AppContent() {
 export function App() {
   return (
     <PRProvider>
-      <TooltipProvider>
-        <AppContent />
-      </TooltipProvider>
+      <AppContent />
     </PRProvider>
   );
 }

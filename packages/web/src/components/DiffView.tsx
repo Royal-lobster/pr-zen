@@ -10,7 +10,6 @@ import { cn } from "../lib/utils";
 import type { PRFile, PRComment } from "../lib/api";
 import { CommentThread } from "./CommentThread";
 import { InlineCommentForm } from "./InlineCommentForm";
-import { cn } from "@/lib/utils";
 
 interface PendingComment {
   path: string;

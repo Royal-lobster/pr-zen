@@ -2,10 +2,6 @@ import { ArrowLeft, GitCommit } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import type { PRCommit } from "../lib/api";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { GitCommit } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface CommitsTabProps {
   commits: PRCommit[];

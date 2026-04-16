@@ -2,11 +2,6 @@ import { ArrowLeft } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
 import type { PRMetadata } from "../lib/api";
-import { Markdown } from "./Markdown";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { GitBranch, GitMerge, GitPullRequest } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface PRTabProps {
   pr: PRMetadata;
@@ -70,33 +65,7 @@ export function PRTab({ pr }: PRTabProps) {
             {pr.body}
           </div>
         </div>
-
-        {/* Branch info */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <GitBranch className="h-3 w-3 shrink-0" />
-          <span className="font-mono">{pr.branch.head}</span>
-          <span className="text-muted-foreground/50">&rarr;</span>
-          <span className="font-mono">{pr.branch.base}</span>
-        </div>
-
-        {/* Labels */}
-        {pr.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {pr.labels.map((label) => (
-              <Badge key={label} variant="secondary" className="text-xs">
-                {label}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Description as Markdown */}
-        {pr.body && (
-          <div className="pt-2 border-t border-border">
-            <Markdown content={pr.body} />
-          </div>
-        )}
-      </div>
-    </ScrollArea>
+      )}
+    </div>
   );
 }

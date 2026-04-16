@@ -3,7 +3,6 @@ import { Search, FileText, Zap } from "lucide-react";
 import { Kbd } from "./ui/kbd";
 import { cn } from "../lib/utils";
 import type { PRFile } from "../lib/api";
-import { cn } from "@/lib/utils";
 
 interface CommandDef {
   id: string;
@@ -45,12 +44,21 @@ export function CommandPalette({
       files.map((f) => ({
         id: `file:${f.path}`,
         label: f.path,
+        shortcut: undefined as string | undefined,
         action: () => {
           onFileSelect(f.path);
           onClose();
         },
       })),
     [files, onFileSelect, onClose]
+  );
+
+  const allItems = useMemo(
+    () => [
+      ...commands.map((c) => ({ id: c.id, label: c.label, shortcut: c.shortcut, action: () => { c.action(); onClose(); } })),
+      ...fileItems,
+    ],
+    [commands, fileItems, onClose]
   );
 
   const filtered = useMemo(() => {
