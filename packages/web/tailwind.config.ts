@@ -27,41 +27,6 @@ export default {
           warn: "#fbbf24",
           purple: "#a78bfa",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        diff: {
-          "add-bg": "hsl(var(--diff-add-bg))",
-          "del-bg": "hsl(var(--diff-del-bg))",
-          "add-text": "hsl(var(--diff-add-text))",
-          "del-text": "hsl(var(--diff-del-text))",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"Fira Code"', "Menlo", "monospace"],
@@ -72,6 +37,7 @@ export default {
       },
       animation: {
         "fade-in": "fadeIn 0.2s ease-out",
+        "fade-out": "fadeOut 0.15s ease-in",
         "fade-in-up": "fadeInUp 0.25s ease-out",
         "slide-in-left": "slideInLeft 0.2s ease-out",
         "slide-in-right": "slideInRight 0.2s ease-out",
@@ -83,6 +49,10 @@ export default {
         fadeIn: {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
+        },
+        fadeOut: {
+          "0%": { opacity: "1" },
+          "100%": { opacity: "0" },
         },
         fadeInUp: {
           "0%": { opacity: "0", transform: "translateY(8px)" },

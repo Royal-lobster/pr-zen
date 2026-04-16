@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Search, FileText, Zap } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 import { Kbd } from "./ui/kbd";
 import { cn } from "../lib/utils";
 import type { PRFile } from "../lib/api";
@@ -36,6 +37,7 @@ export function CommandPalette({
   useEffect(() => {
     if (open) {
       setQuery("");
+      inputRef.current?.focus();
     }
   }, [open]);
 

@@ -11,8 +11,10 @@ import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
+import { useDiffStyle } from "./hooks/useDiffStyle";
+import { useActionError } from "./hooks/useActionError";
 import { cn } from "./lib/utils";
-import { useState, useCallback, useRef, useMemo, useEffect, lazy, Suspense } from "react";
+import { useState, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { api } from "./lib/api";
 import { ArrowLeft, Loader2, AlertCircle, X } from "lucide-react";
 
@@ -79,29 +81,11 @@ function AppContent() {
   } | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [diffStyle, setDiffStyle] = useState<"unified" | "split">(() => {
-    const stored = localStorage.getItem("pr-zen:v1:diff-style");
-    return stored === "split" ? "split" : "unified";
-  });
+  const { actionError, setActionError, wrapAction } = useActionError();
+  const { diffStyle, toggleDiffStyle } = useDiffStyle();
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  useEffect(() => {
-    if (actionError) {
-      const t = setTimeout(() => setActionError(null), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [actionError]);
-
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
-
-  const toggleDiffStyle = useCallback(() => {
-    setDiffStyle((prev) => {
-      const next = prev === "unified" ? "split" : "unified";
-      localStorage.setItem("pr-zen:v1:diff-style", next);
-      return next;
-    });
-  }, []);
 
   const handleFileRef = useCallback(
     (path: string, el: HTMLDivElement | null) => {
@@ -163,39 +147,38 @@ function AppContent() {
       line: number;
       side: string;
     }) => {
-      try {
-        const comment = await api.postInlineComment(params);
+      const comment = await wrapAction(
+        () => api.postInlineComment(params),
+        "Failed to post comment"
+      );
+      if (comment) {
         addComment(comment);
         setPendingComment(null);
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post comment");
       }
     },
-    [addComment]
+    [addComment, wrapAction]
   );
 
   const handleReplyToComment = useCallback(
     async (commentId: number, body: string) => {
-      try {
-        const comment = await api.replyToComment(commentId, body);
-        addComment(comment);
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post reply");
-      }
+      const comment = await wrapAction(
+        () => api.replyToComment(commentId, body),
+        "Failed to post reply"
+      );
+      if (comment) addComment(comment);
     },
-    [addComment]
+    [addComment, wrapAction]
   );
 
   const handlePostComment = useCallback(
     async (body: string) => {
-      try {
-        const comment = await api.postComment(body);
-        addComment(comment);
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to post comment");
-      }
+      const comment = await wrapAction(
+        () => api.postComment(body),
+        "Failed to post comment"
+      );
+      if (comment) addComment(comment);
     },
-    [addComment]
+    [addComment, wrapAction]
   );
 
   const handleSubmitReview = useCallback(
@@ -203,13 +186,12 @@ function AppContent() {
       event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
       body?: string
     ) => {
-      try {
-        await api.submitReview(event, body);
-      } catch (e) {
-        setActionError(e instanceof Error ? e.message : "Failed to submit review");
-      }
+      await wrapAction(
+        () => api.submitReview(event, body),
+        "Failed to submit review"
+      );
     },
-    []
+    [wrapAction]
   );
 
   const commands = useMemo<Command[]>(

@@ -2,26 +2,12 @@ import { useState, useRef, useEffect, useMemo, type FormEvent } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Kbd } from "./ui/kbd";
-import { cn } from "../lib/utils";
+import { cn, formatRelativeTime } from "../lib/utils";
 import type { PRComment } from "../lib/api";
-
 
 interface ChatTabProps {
   comments: PRComment[];
   onPostComment: (body: string) => Promise<void>;
-}
-
-function formatTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "now";
-  if (diffMins < 60) return `${diffMins}m`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d`;
 }
 
 export function ChatTab({ comments, onPostComment }: ChatTabProps) {
@@ -73,7 +59,7 @@ export function ChatTab({ comments, onPostComment }: ChatTabProps) {
                     {comment.author.login}
                   </span>
                   <span className="text-2xs text-zen-muted font-mono tabular-nums">
-                    {formatTime(comment.createdAt)}
+                    {formatRelativeTime(comment.createdAt)}
                   </span>
                 </div>
                 <div className="mt-1 zen-prose text-[13px] whitespace-pre-wrap break-words">
