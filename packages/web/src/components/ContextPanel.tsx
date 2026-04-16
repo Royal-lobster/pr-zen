@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { PRTab } from "./PRTab";
 import { ChatTab } from "./ChatTab";
 import { CommitsTab } from "./CommitsTab";
+import { cn } from "../lib/utils";
 import type { PRComment, PRCommit, PRMetadata } from "../lib/api";
 
 interface ContextPanelProps {
@@ -13,8 +15,6 @@ interface ContextPanelProps {
   onPostComment: (body: string) => Promise<void>;
 }
 
-type Tab = "pr" | "chat" | "commits";
-
 export function ContextPanel({
   pr,
   comments,
@@ -23,44 +23,54 @@ export function ContextPanel({
   onSelectCommit,
   onPostComment,
 }: ContextPanelProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("pr");
-
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "pr", label: "PR" },
-    { id: "chat", label: "Chat" },
-    { id: "commits", label: "Commits" },
-  ];
+  const chatCount = useMemo(
+    () => comments.filter((c) => c.type === "pr").length,
+    [comments]
+  );
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex border-b border-zen-border">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2 text-xs font-medium text-center transition-colors ${
-              activeTab === tab.id
-                ? "text-zen-accent border-b-2 border-zen-accent"
-                : "text-zen-muted hover:text-zen-text"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === "pr" && <PRTab pr={pr} />}
-        {activeTab === "chat" && (
-          <ChatTab comments={comments} onPostComment={onPostComment} />
-        )}
-        {activeTab === "commits" && (
-          <CommitsTab
-            commits={commits}
-            activeCommit={activeCommit}
-            onSelectCommit={onSelectCommit}
-          />
-        )}
-      </div>
-    </div>
+    <Tabs defaultValue="pr" className="h-full flex flex-col">
+      <TabsList>
+        <TabsTrigger value="pr">PR</TabsTrigger>
+        <TabsTrigger value="chat">
+          <span className="flex items-center gap-1.5">
+            Chat
+            {chatCount > 0 && (
+              <span className={cn(
+                "text-2xs font-mono tabular-nums px-1 rounded-full",
+                "bg-zen-accent/15 text-zen-accent"
+              )}>
+                {chatCount}
+              </span>
+            )}
+          </span>
+        </TabsTrigger>
+        <TabsTrigger value="commits">
+          <span className="flex items-center gap-1.5">
+            Commits
+            <span className={cn(
+              "text-2xs font-mono tabular-nums px-1 rounded-full",
+              "bg-zen-elevated text-zen-muted"
+            )}>
+              {commits.length}
+            </span>
+          </span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="pr">
+        <PRTab pr={pr} />
+      </TabsContent>
+      <TabsContent value="chat" className="h-0 flex-1">
+        <ChatTab comments={comments} onPostComment={onPostComment} />
+      </TabsContent>
+      <TabsContent value="commits">
+        <CommitsTab
+          commits={commits}
+          activeCommit={activeCommit}
+          onSelectCommit={onSelectCommit}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }

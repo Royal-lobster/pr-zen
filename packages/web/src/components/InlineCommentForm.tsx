@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import { Button } from "./ui/button";
+import { Kbd } from "./ui/kbd";
+import { cn } from "../lib/utils";
 
 interface InlineCommentFormProps {
   path: string;
@@ -43,9 +46,9 @@ export function InlineCommentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border border-zen-border rounded-md bg-zen-bg my-1 mx-2 p-3"
+      className="border border-zen-accent/20 rounded-lg bg-zen-bg my-1.5 mx-2 p-3 shadow-card animate-fade-in-up"
     >
-      <div className="text-xs text-zen-muted mb-2">
+      <div className="text-2xs text-zen-muted font-mono mb-2">
         {path}:{line}
       </div>
       <textarea
@@ -54,7 +57,12 @@ export function InlineCommentForm({
         onChange={(e) => setBody(e.target.value)}
         placeholder="Write a comment..."
         rows={3}
-        className="w-full bg-zen-surface border border-zen-border rounded px-3 py-2 text-xs text-zen-text placeholder:text-zen-muted/50 resize-none focus:outline-none focus:border-zen-accent"
+        className={cn(
+          "w-full bg-zen-surface border border-zen-border rounded-lg px-3 py-2",
+          "text-xs font-mono text-zen-text placeholder:text-zen-muted/40",
+          "resize-none focus:outline-none focus:border-zen-accent/50",
+          "focus:ring-1 focus:ring-zen-accent/20 transition-all duration-150"
+        )}
         onKeyDown={(e) => {
           if (e.key === "Enter" && e.metaKey) {
             e.preventDefault();
@@ -65,21 +73,20 @@ export function InlineCommentForm({
           }
         }}
       />
-      <div className="flex justify-end gap-2 mt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-2 py-1 text-xs text-zen-muted hover:text-zen-text transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!body.trim() || submitting}
-          className="px-3 py-1 text-xs bg-zen-accent text-white rounded disabled:opacity-40"
-        >
-          {submitting ? "Posting..." : "Comment"}
-        </button>
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-2xs text-zen-muted flex items-center gap-0.5">
+          <Kbd>{"\u2318"}</Kbd><Kbd>{"\u21B5"}</Kbd> submit
+          <span className="mx-1 text-zen-border">|</span>
+          <Kbd>esc</Kbd> cancel
+        </span>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" type="button" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button size="sm" type="submit" disabled={!body.trim() || submitting}>
+            {submitting ? "Posting..." : "Comment"}
+          </Button>
+        </div>
       </div>
     </form>
   );

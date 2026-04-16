@@ -6,12 +6,48 @@ import { BottomBar } from "./components/BottomBar";
 import { DiffView } from "./components/DiffView";
 import { CommandPalette, type Command } from "./components/CommandPalette";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
+import { Button } from "./components/ui/button";
+import { Badge } from "./components/ui/badge";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
+import { cn } from "./lib/utils";
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { api } from "./lib/api";
+import { ArrowLeft, Loader2, AlertCircle, X } from "lucide-react";
+
+function LoadingScreen() {
+  return (
+    <div className="h-screen flex flex-col items-center justify-center gap-4 animate-fade-in">
+      <div className="relative">
+        <div className="w-10 h-10 rounded-full border-2 border-zen-border" />
+        <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-transparent border-t-zen-accent animate-spin" />
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-sm font-medium text-zen-text tracking-tight">Loading PR</span>
+        <span className="text-2xs text-zen-muted font-mono">fetching data from GitHub...</span>
+      </div>
+    </div>
+  );
+}
+
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <div className="h-screen flex flex-col items-center justify-center gap-4 animate-fade-in">
+      <div className="w-12 h-12 rounded-full bg-zen-del-bg flex items-center justify-center">
+        <AlertCircle className="w-6 h-6 text-zen-del-text" />
+      </div>
+      <div className="flex flex-col items-center gap-1 max-w-md text-center">
+        <span className="text-sm font-medium text-zen-text">Failed to load</span>
+        <span className="text-xs text-zen-del-text font-mono">{message}</span>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+        Retry
+      </Button>
+    </div>
+  );
+}
 
 function AppContent() {
   const {
@@ -43,7 +79,6 @@ function AppContent() {
   const [actionError, setActionError] = useState<string | null>(null);
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Clear error after 5 seconds
   useEffect(() => {
     if (actionError) {
       const t = setTimeout(() => setActionError(null), 5000);
@@ -167,13 +202,13 @@ function AppContent() {
       {
         id: "toggle-left",
         label: "Toggle file tree",
-        shortcut: "Cmd+[",
+        shortcut: "\u2318[",
         action: toggleLeft,
       },
       {
         id: "toggle-right",
         label: "Toggle context panel",
-        shortcut: "Cmd+]",
+        shortcut: "\u2318]",
         action: toggleRight,
       },
       {
@@ -202,9 +237,7 @@ function AppContent() {
         toggleLeftSidebar: toggleLeft,
         toggleRightSidebar: toggleRight,
         openCommandPalette: () => setCommandPaletteOpen(true),
-        submitReview: () => {
-          // Removed: Cmd+Enter should not auto-approve. Use the Submit button.
-        },
+        submitReview: () => {},
         showHelp: () => setHelpOpen(true),
       }),
       [
@@ -217,101 +250,100 @@ function AppContent() {
     )
   );
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-zen-muted text-sm">Loading PR...</div>
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-zen-del-text text-sm">
-          {error ?? "Failed to load PR"}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen />;
+  if (error || !data) return <ErrorScreen message={error ?? "Failed to load PR"} />;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col zen-noise">
       <ProgressBar
         reviewedCount={reviewedCount}
         totalFiles={orderedFiles.length}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar — File Tree */}
-        {leftOpen && (
-          <div className="w-64 shrink-0 border-r border-zen-border bg-zen-surface overflow-hidden">
-            <FileTree
-              files={orderedFiles}
-              currentFile={currentFile}
-              isReviewed={isReviewed}
-              onToggleReviewed={toggleReviewed}
-              onFileClick={handleFileClick}
-              mode={mode}
-              onToggleMode={toggleMode}
-            />
-          </div>
-        )}
+        {/* Left Sidebar -- File Tree */}
+        <div
+          className={cn(
+            "shrink-0 border-r border-zen-border bg-zen-surface overflow-hidden transition-sidebar",
+            leftOpen ? "w-64" : "w-0"
+          )}
+        >
+          {leftOpen && (
+            <div className="w-64 h-full animate-slide-in-left">
+              <FileTree
+                files={orderedFiles}
+                currentFile={currentFile}
+                isReviewed={isReviewed}
+                onToggleReviewed={toggleReviewed}
+                onFileClick={handleFileClick}
+                mode={mode}
+                onToggleMode={toggleMode}
+              />
+            </div>
+          )}
+        </div>
 
         {!leftOpen && (
           <div
             onClick={toggleLeft}
-            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors shrink-0"
-            title="Show file tree (Cmd+[)"
+            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors duration-200 shrink-0"
+            title="Show file tree (\u2318[)"
           />
         )}
 
-        {/* Center — Diff View */}
-        <div className="flex-1 overflow-hidden">
+        {/* Center -- Diff View */}
+        <div className="flex-1 overflow-hidden flex flex-col">
           {activeCommit && (
-            <div className="sticky top-0 z-10 px-4 py-2 bg-zen-surface border-b border-zen-border">
-              <button
-                onClick={() => setActiveCommit(null)}
-                className="text-xs text-zen-accent hover:text-zen-accent/80"
-              >
-                &larr; Back to full diff
-              </button>
-              <span className="text-xs text-zen-muted ml-2">
-                Viewing commit {activeCommit.slice(0, 7)}
-              </span>
+            <div className="flex items-center gap-3 px-4 py-2 bg-zen-surface/80 backdrop-blur-sm border-b border-zen-border">
+              <Button variant="ghost" size="sm" onClick={() => setActiveCommit(null)}>
+                <ArrowLeft className="w-3 h-3" />
+                Back to full diff
+              </Button>
+              <Badge variant="accent">
+                {activeCommit.slice(0, 7)}
+              </Badge>
             </div>
           )}
-          <DiffView
-            files={orderedFiles}
-            comments={data.comments}
-            pendingComment={pendingComment}
-            onGutterClick={handleGutterClick}
-            onSubmitInlineComment={handleSubmitInlineComment}
-            onCancelComment={() => setPendingComment(null)}
-            onReplyToComment={handleReplyToComment}
-            fileRef={handleFileRef}
-          />
-        </div>
-
-        {/* Right Sidebar — Context Panel */}
-        {rightOpen && (
-          <div className="w-80 shrink-0 border-l border-zen-border bg-zen-surface overflow-hidden">
-            <ContextPanel
-              pr={data.pr}
+          <div className="flex-1 overflow-hidden">
+            <DiffView
+              files={orderedFiles}
               comments={data.comments}
-              commits={data.commits}
-              activeCommit={activeCommit}
-              onSelectCommit={setActiveCommit}
-              onPostComment={handlePostComment}
+              pendingComment={pendingComment}
+              onGutterClick={handleGutterClick}
+              onSubmitInlineComment={handleSubmitInlineComment}
+              onCancelComment={() => setPendingComment(null)}
+              onReplyToComment={handleReplyToComment}
+              fileRef={handleFileRef}
             />
           </div>
-        )}
+        </div>
+
+        {/* Right Sidebar -- Context Panel */}
+        <div
+          className={cn(
+            "shrink-0 border-l border-zen-border bg-zen-surface overflow-hidden transition-sidebar",
+            rightOpen ? "w-80" : "w-0"
+          )}
+        >
+          {rightOpen && (
+            <div className="w-80 h-full animate-slide-in-right">
+              <ContextPanel
+                pr={data.pr}
+                comments={data.comments}
+                commits={data.commits}
+                activeCommit={activeCommit}
+                onSelectCommit={setActiveCommit}
+                onPostComment={handlePostComment}
+              />
+            </div>
+          )}
+        </div>
 
         {!rightOpen && (
           <div
             onClick={toggleRight}
-            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors shrink-0"
-            title="Show context panel (Cmd+])"
+            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors duration-200 shrink-0"
+            title="Show context panel (\u2318])"
           />
         )}
       </div>
@@ -328,9 +360,19 @@ function AppContent() {
 
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
+      {/* Error toast */}
       {actionError && (
-        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 px-4 py-2 bg-zen-del-text/20 text-zen-del-text text-xs rounded-md border border-zen-del-text/30 z-50">
-          {actionError}
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-zen-surface border border-zen-del-border rounded-lg shadow-overlay">
+            <AlertCircle className="w-3.5 h-3.5 text-zen-del-text shrink-0" />
+            <span className="text-xs text-zen-del-text font-mono">{actionError}</span>
+            <button
+              onClick={() => setActionError(null)}
+              className="text-zen-muted hover:text-zen-text transition-colors ml-1"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       )}
     </div>

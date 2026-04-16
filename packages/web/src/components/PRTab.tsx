@@ -1,58 +1,67 @@
+import { ArrowLeft } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { cn } from "../lib/utils";
 import type { PRMetadata } from "../lib/api";
 
 interface PRTabProps {
   pr: PRMetadata;
 }
 
-export function PRTab({ pr }: PRTabProps) {
-  const stateBadgeColor =
-    pr.state === "merged"
-      ? "bg-purple-500/20 text-purple-400"
-      : pr.state === "open"
-        ? "bg-zen-add-text/20 text-zen-add-text"
-        : "bg-zen-del-text/20 text-zen-del-text";
+const stateVariant: Record<string, "success" | "destructive" | "purple"> = {
+  open: "success",
+  closed: "destructive",
+  merged: "purple",
+};
 
+export function PRTab({ pr }: PRTabProps) {
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 animate-fade-in">
+      {/* Title & meta */}
       <div>
-        <h2 className="text-base font-semibold text-zen-text leading-tight">
+        <h2 className="text-[15px] font-semibold text-zen-text leading-snug tracking-tight">
           {pr.title}
         </h2>
-        <div className="flex items-center gap-2 mt-2">
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full font-medium ${stateBadgeColor}`}
-          >
+        <div className="flex items-center gap-2 mt-2.5">
+          <Badge variant={stateVariant[pr.state] ?? "default"}>
             {pr.state}
-          </span>
-          <span className="text-xs text-zen-muted">{pr.author.login}</span>
-        </div>
-      </div>
-
-      <div className="text-xs text-zen-muted space-y-1">
-        <div>
-          <span className="text-zen-muted/60">base:</span> {pr.branch.base}
-        </div>
-        <div>
-          <span className="text-zen-muted/60">head:</span> {pr.branch.head}
-        </div>
-      </div>
-
-      {pr.labels.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {pr.labels.map((label) => (
-            <span
-              key={label}
-              className="text-xs px-2 py-0.5 rounded-full bg-zen-border text-zen-muted"
-            >
-              {label}
+          </Badge>
+          <span className="flex items-center gap-1.5">
+            <img
+              src={pr.author.avatarUrl}
+              alt=""
+              className="w-4 h-4 rounded-full ring-1 ring-zen-border"
+            />
+            <span className="text-xs text-zen-text-secondary font-medium">
+              {pr.author.login}
             </span>
+          </span>
+        </div>
+      </div>
+
+      {/* Branches */}
+      <div className="flex items-center gap-2 text-xs font-mono">
+        <span className="px-2 py-0.5 bg-zen-elevated rounded text-zen-text-secondary truncate max-w-[120px]">
+          {pr.branch.base}
+        </span>
+        <ArrowLeft className="w-3 h-3 text-zen-muted shrink-0" />
+        <span className="px-2 py-0.5 bg-zen-accent-dim rounded text-zen-accent truncate max-w-[120px]">
+          {pr.branch.head}
+        </span>
+      </div>
+
+      {/* Labels */}
+      {pr.labels.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {pr.labels.map((label) => (
+            <Badge key={label} variant="default">{label}</Badge>
           ))}
         </div>
       )}
 
+      {/* Description */}
       {pr.body && (
-        <div className="pt-2 border-t border-zen-border">
-          <div className="text-sm text-zen-text/80 whitespace-pre-wrap break-words">
+        <div className="pt-3 border-t border-zen-border">
+          <div className="zen-prose whitespace-pre-wrap break-words">
             {pr.body}
           </div>
         </div>

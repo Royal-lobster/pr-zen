@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Button } from "./ui/button";
+import { cn } from "../lib/utils";
 import type { PRComment } from "../lib/api";
 
 interface CommentThreadProps {
@@ -11,12 +13,12 @@ function formatTime(dateStr: string): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 1) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHours < 24) return `${diffHours}h`;
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+  return `${diffDays}d`;
 }
 
 export function CommentThread({ comments, onReply }: CommentThreadProps) {
@@ -36,36 +38,44 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
   }
 
   return (
-    <div className="border border-zen-border rounded-md bg-zen-bg my-1 mx-2 overflow-hidden">
-      {comments.map((c) => (
+    <div className="border border-zen-border rounded-lg bg-zen-bg my-1.5 mx-2 overflow-hidden shadow-card animate-fade-in">
+      {comments.map((c, i) => (
         <div
           key={c.id}
-          className="px-3 py-2 border-b border-zen-border last:border-b-0"
+          className={cn(
+            "px-3 py-2.5",
+            i < comments.length - 1 && "border-b border-zen-border-subtle"
+          )}
         >
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1.5">
             <img
               src={c.author.avatarUrl}
-              className="w-4 h-4 rounded-full"
+              className="w-4 h-4 rounded-full ring-1 ring-zen-border"
               alt=""
             />
-            <span className="text-xs font-medium text-zen-text">
+            <span className="text-xs font-semibold text-zen-text">
               {c.author.login}
             </span>
-            <span className="text-xs text-zen-muted">
+            <span className="text-2xs text-zen-muted font-mono tabular-nums">
               {formatTime(c.createdAt)}
             </span>
           </div>
-          <div className="text-xs text-zen-text/80 whitespace-pre-wrap">
+          <div className="zen-prose text-xs whitespace-pre-wrap pl-6">
             {c.body}
           </div>
         </div>
       ))}
-      <div className="px-3 py-2 flex gap-2">
+      <div className="px-3 py-2 flex gap-2 bg-zen-surface/50">
         <input
           value={replyBody}
           onChange={(e) => setReplyBody(e.target.value)}
           placeholder="Reply..."
-          className="flex-1 bg-zen-surface border border-zen-border rounded px-2 py-1 text-xs text-zen-text placeholder:text-zen-muted/50 focus:outline-none focus:border-zen-accent"
+          className={cn(
+            "flex-1 bg-zen-bg border border-zen-border rounded-lg px-2.5 py-1.5",
+            "text-xs font-mono text-zen-text placeholder:text-zen-muted/40",
+            "focus:outline-none focus:border-zen-accent/50 focus:ring-1 focus:ring-zen-accent/20",
+            "transition-all duration-150"
+          )}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -73,13 +83,13 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
             }
           }}
         />
-        <button
+        <Button
+          size="sm"
           onClick={handleReply}
           disabled={!replyBody.trim() || replying}
-          className="px-2 py-1 text-xs bg-zen-accent text-white rounded disabled:opacity-40"
         >
           Reply
-        </button>
+        </Button>
       </div>
     </div>
   );

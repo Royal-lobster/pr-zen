@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { Search, FileText, Zap } from "lucide-react";
+import { Kbd } from "./ui/kbd";
+import { cn } from "../lib/utils";
 import type { PRFile } from "../lib/api";
 
 interface Command {
@@ -28,6 +31,7 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -59,7 +63,16 @@ export function CommandPalette({
     setSelectedIndex(0);
   }, [query]);
 
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const selected = list.children[selectedIndex] as HTMLElement | undefined;
+    selected?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
   if (!open) return null;
+
+  const isFile = (id: string) => id.startsWith("file:");
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
@@ -78,45 +91,71 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[18vh] bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-[500px] bg-zen-surface border border-zen-border rounded-lg shadow-2xl overflow-hidden"
+        className="w-[520px] bg-zen-surface border border-zen-border rounded-xl shadow-overlay overflow-hidden animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search files and commands..."
-          className="w-full px-4 py-3 bg-transparent text-sm text-zen-text placeholder:text-zen-muted/50 border-b border-zen-border focus:outline-none"
-        />
-        <div className="max-h-[300px] overflow-y-auto py-1">
+        {/* Search input */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-zen-border">
+          <Search className="w-4 h-4 text-zen-muted shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search files and commands..."
+            className="flex-1 bg-transparent text-sm text-zen-text placeholder:text-zen-muted/40 focus:outline-none font-mono"
+          />
+          <Kbd>esc</Kbd>
+        </div>
+
+        {/* Results */}
+        <div ref={listRef} className="max-h-[320px] overflow-y-auto py-1">
           {filtered.length === 0 && (
-            <div className="px-4 py-3 text-sm text-zen-muted">
-              No results found.
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm text-zen-muted">No results for &ldquo;{query}&rdquo;</p>
             </div>
           )}
           {filtered.map((item, i) => (
             <button
               key={item.id}
               onClick={item.action}
-              className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors ${
+              className={cn(
+                "w-full text-left px-4 py-2 flex items-center gap-3 transition-colors duration-75",
                 i === selectedIndex
-                  ? "bg-zen-accent/10 text-zen-text"
-                  : "text-zen-muted hover:bg-zen-surface"
-              }`}
+                  ? "bg-zen-accent-dim text-zen-text"
+                  : "text-zen-text-secondary hover:bg-zen-elevated/50"
+              )}
             >
-              <span className="truncate">{item.label}</span>
+              {isFile(item.id) ? (
+                <FileText className="w-3.5 h-3.5 text-zen-muted shrink-0" />
+              ) : (
+                <Zap className="w-3.5 h-3.5 text-zen-accent shrink-0" />
+              )}
+              <span className={cn(
+                "truncate text-[13px]",
+                isFile(item.id) ? "font-mono" : "font-sans"
+              )}>
+                {item.label}
+              </span>
               {item.shortcut && (
-                <kbd className="ml-2 text-xs text-zen-muted/60 shrink-0">
-                  {item.shortcut}
-                </kbd>
+                <Kbd className="ml-auto shrink-0">{item.shortcut}</Kbd>
               )}
             </button>
           ))}
+        </div>
+
+        {/* Footer hint */}
+        <div className="flex items-center gap-3 px-4 py-2 border-t border-zen-border text-2xs text-zen-muted">
+          <span className="flex items-center gap-1">
+            <Kbd>{"\u2191"}</Kbd><Kbd>{"\u2193"}</Kbd> navigate
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd>{"\u21B5"}</Kbd> select
+          </span>
         </div>
       </div>
     </div>

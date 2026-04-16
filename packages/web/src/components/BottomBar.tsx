@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { Button } from "./ui/button";
+import { Kbd } from "./ui/kbd";
+import { cn } from "../lib/utils";
 
 interface BottomBarProps {
   onSubmitReview: (
@@ -7,20 +11,17 @@ interface BottomBarProps {
   ) => Promise<void>;
 }
 
-export function BottomBar({ onSubmitReview }: BottomBarProps) {
-  const [action, setAction] = useState<
-    "APPROVE" | "REQUEST_CHANGES" | "COMMENT"
-  >("APPROVE");
-  const [submitting, setSubmitting] = useState(false);
+type ReviewAction = "APPROVE" | "REQUEST_CHANGES" | "COMMENT";
 
-  const actions: {
-    value: "APPROVE" | "REQUEST_CHANGES" | "COMMENT";
-    label: string;
-  }[] = [
-    { value: "APPROVE", label: "Approve" },
-    { value: "REQUEST_CHANGES", label: "Request Changes" },
-    { value: "COMMENT", label: "Comment" },
-  ];
+const actionConfig: Record<ReviewAction, { label: string; icon: string }> = {
+  APPROVE: { label: "Approve", icon: "\u2713" },
+  REQUEST_CHANGES: { label: "Request Changes", icon: "\u2717" },
+  COMMENT: { label: "Comment", icon: "\u2709" },
+};
+
+export function BottomBar({ onSubmitReview }: BottomBarProps) {
+  const [action, setAction] = useState<ReviewAction>("APPROVE");
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit() {
     if (submitting) return;
@@ -33,36 +34,56 @@ export function BottomBar({ onSubmitReview }: BottomBarProps) {
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-t border-zen-border bg-zen-surface">
-      <span className="text-xs text-zen-muted">
-        <kbd className="px-1.5 py-0.5 bg-zen-bg border border-zen-border rounded text-[10px]">
-          Cmd+K
-        </kbd>{" "}
-        Command Palette
-      </span>
+    <div className="flex items-center justify-between px-4 py-2 border-t border-zen-border bg-zen-surface/80 backdrop-blur-sm">
+      {/* Left: keyboard hints */}
+      <div className="flex items-center gap-3 text-zen-muted">
+        <span className="flex items-center gap-1.5 text-2xs">
+          <Kbd>j</Kbd><Kbd>k</Kbd>
+          <span>navigate</span>
+        </span>
+        <span className="flex items-center gap-1.5 text-2xs">
+          <Kbd>x</Kbd>
+          <span>review</span>
+        </span>
+        <span className="flex items-center gap-1.5 text-2xs">
+          <Kbd>{"\u2318"}K</Kbd>
+          <span>palette</span>
+        </span>
+      </div>
+
+      {/* Right: review actions */}
       <div className="flex items-center gap-2">
-        <select
-          value={action}
-          onChange={(e) =>
-            setAction(
-              e.target.value as "APPROVE" | "REQUEST_CHANGES" | "COMMENT"
+        <div className="flex items-center bg-zen-bg rounded-lg border border-zen-border overflow-hidden">
+          {(Object.entries(actionConfig) as [ReviewAction, typeof actionConfig[ReviewAction]][]).map(
+            ([value, config]) => (
+              <button
+                key={value}
+                onClick={() => setAction(value)}
+                className={cn(
+                  "px-2.5 py-1.5 text-2xs font-medium transition-all duration-100",
+                  action === value
+                    ? "bg-zen-elevated text-zen-text"
+                    : "text-zen-muted hover:text-zen-text-secondary"
+                )}
+              >
+                {config.label}
+              </button>
             )
-          }
-          className="bg-zen-bg border border-zen-border rounded-md px-2 py-1.5 text-xs text-zen-text focus:outline-none focus:border-zen-accent"
-        >
-          {actions.map((a) => (
-            <option key={a.value} value={a.value}>
-              {a.label}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="px-3 py-1.5 text-xs font-medium bg-zen-accent text-white rounded-md disabled:opacity-40 hover:bg-zen-accent/80 transition-colors"
-        >
-          {submitting ? "Submitting..." : "Submit Review"}
-        </button>
+          )}
+        </div>
+        <Button onClick={handleSubmit} disabled={submitting} className="font-mono">
+          {submitting ? (
+            <span className="flex items-center gap-1.5">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Submitting
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <span>{actionConfig[action].icon}</span>
+              Submit
+            </span>
+          )}
+        </Button>
       </div>
     </div>
   );

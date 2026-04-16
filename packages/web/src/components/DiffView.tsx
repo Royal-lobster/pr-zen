@@ -4,6 +4,9 @@ import {
   Virtualizer,
   type DiffLineAnnotation,
 } from "@pierre/diffs/react";
+import { FileCode, ArrowLeft } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { cn } from "../lib/utils";
 import type { PRFile, PRComment } from "../lib/api";
 import { CommentThread } from "./CommentThread";
 import { InlineCommentForm } from "./InlineCommentForm";
@@ -34,6 +37,13 @@ interface DiffViewProps {
   fileRef?: (path: string, el: HTMLDivElement | null) => void;
 }
 
+const statusBadgeVariant: Record<string, "success" | "accent" | "destructive" | "warn"> = {
+  added: "success",
+  modified: "accent",
+  removed: "destructive",
+  renamed: "warn",
+};
+
 export function DiffView({
   files,
   comments,
@@ -44,7 +54,6 @@ export function DiffView({
   onReplyToComment,
   fileRef,
 }: DiffViewProps) {
-  // Group inline comments by file path
   const commentsByFile = useMemo(() => {
     const map = new Map<string, PRComment[]>();
     for (const c of comments) {
@@ -59,7 +68,7 @@ export function DiffView({
   return (
     <Virtualizer
       className="h-full overflow-auto"
-      contentClassName="space-y-2 p-4"
+      contentClassName="space-y-3 p-4"
       config={{
         overscrollSize: 1000,
         intersectionObserverMargin: 2000,
@@ -72,14 +81,15 @@ export function DiffView({
               key={file.path}
               ref={(el) => fileRef?.(file.path, el)}
               data-file-path={file.path}
-              className="border border-zen-border rounded-lg overflow-hidden"
+              className="border border-zen-border rounded-lg overflow-hidden shadow-card animate-fade-in"
             >
-              <div className="px-4 py-2 bg-zen-surface border-b border-zen-border">
-                <span className="text-xs font-mono text-zen-text">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-zen-surface border-b border-zen-border">
+                <FileCode className="w-3.5 h-3.5 text-zen-muted" />
+                <span className="text-xs font-mono text-zen-text truncate">
                   {file.path}
                 </span>
               </div>
-              <div className="p-4 text-xs text-zen-muted text-center">
+              <div className="p-6 text-xs text-zen-muted text-center">
                 Binary file or no changes
               </div>
             </div>
@@ -88,12 +98,10 @@ export function DiffView({
 
         const fileComments = commentsByFile.get(file.path) ?? [];
 
-        // Build annotation threads grouped by line
         const threadMap = new Map<string, PRComment[]>();
         for (const c of fileComments) {
           if (!c.line) continue;
           if (c.inReplyToId) {
-            // Find parent thread and add to it
             let added = false;
             for (const [, t] of threadMap) {
               if (t.some((tc) => tc.id === c.inReplyToId)) {
@@ -103,7 +111,6 @@ export function DiffView({
               }
             }
             if (!added) {
-              // Orphaned reply — create standalone thread
               const key = `${c.line}:${c.side ?? "RIGHT"}`;
               const thread = threadMap.get(key) ?? [];
               thread.push(c);
@@ -130,20 +137,14 @@ export function DiffView({
           });
         }
 
-        // Add pending comment annotation
-        if (
-          pendingComment &&
-          pendingComment.path === file.path
-        ) {
+        if (pendingComment && pendingComment.path === file.path) {
           annotations.push({
             lineNumber: pendingComment.line,
-            side:
-              pendingComment.side === "LEFT" ? "deletions" : "additions",
+            side: pendingComment.side === "LEFT" ? "deletions" : "additions",
             metadata: { isPending: true },
           });
         }
 
-        // Build a full unified diff patch string with header
         const patchWithHeader = [
           `diff --git a/${file.previousPath ?? file.path} b/${file.path}`,
           `--- a/${file.previousPath ?? file.path}`,
@@ -156,6 +157,7 @@ export function DiffView({
             key={file.path}
             ref={(el) => fileRef?.(file.path, el)}
             data-file-path={file.path}
+            className="animate-fade-in"
           >
             <PatchDiff
               patch={patchWithHeader}
@@ -168,6 +170,13 @@ export function DiffView({
                 lineHoverHighlight: "both",
                 enableGutterUtility: true,
                 overflow: "scroll",
+                onGutterUtilityClick: (range: { start: number }) => {
+                  onGutterClick({
+                    path: file.path,
+                    line: range.start,
+                    side: "RIGHT",
+                  });
+                },
               }}
               lineAnnotations={annotations}
               renderAnnotation={(ann) =>
@@ -187,24 +196,22 @@ export function DiffView({
                 ) : null
               }
               renderHeaderPrefix={() => (
-                <div className="flex items-center gap-2 px-3 py-1.5">
-                  <span className="text-xs font-mono text-zen-text">
+                <div className="flex items-center gap-2.5 px-3 py-2">
+                  <FileCode className="w-3.5 h-3.5 text-zen-muted shrink-0" />
+                  <span className="text-xs font-mono text-zen-text truncate">
                     {file.path}
                   </span>
                   {file.previousPath && (
-                    <span className="text-xs text-zen-muted">
-                      &larr; {file.previousPath}
+                    <span className="flex items-center gap-1 text-xs text-zen-muted shrink-0">
+                      <ArrowLeft className="w-3 h-3" />
+                      <span className="font-mono truncate max-w-[150px]">{file.previousPath}</span>
                     </span>
                   )}
+                  <Badge variant={statusBadgeVariant[file.status] ?? "default"} className="ml-auto shrink-0">
+                    {file.status}
+                  </Badge>
                 </div>
               )}
-              onGutterUtilityClick={(range) => {
-                onGutterClick({
-                  path: file.path,
-                  line: range.start,
-                  side: "RIGHT",
-                });
-              }}
             />
           </div>
         );
