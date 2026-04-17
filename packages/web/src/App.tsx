@@ -8,7 +8,7 @@ import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
 import { useSidebarState } from "./hooks/useSidebarState";
-import { useReviewProgress } from "./hooks/useReviewProgress";
+import { useViewedState } from "./hooks/useViewedState";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
 import { useDiffPrefs } from "./hooks/useDiffPrefs";
@@ -73,8 +73,6 @@ function AppContent() {
     currentFileOrder
   );
   const prKey = data ? `${data.pr.number}` : undefined;
-  const { isReviewed, toggleReviewed, reviewedCount } =
-    useReviewProgress(prKey);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [pendingComment, setPendingComment] = useState<{
     path: string;
@@ -86,6 +84,11 @@ function AppContent() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const { actionError, setActionError, wrapAction } = useActionError();
+  const { isViewed, toggleViewed, viewedCount } = useViewedState(
+    prKey,
+    currentFiles,
+    setActionError
+  );
   const { diffStyle, wordWrap, toggleDiffStyle, toggleWordWrap } = useDiffPrefs();
   const { treeMode, toggleTreeMode } = useFileTreeMode();
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -252,7 +255,7 @@ function AppContent() {
     nextFile: () => navigateFile(1),
     prevFile: () => navigateFile(-1),
     markReviewed: () => {
-      if (currentFile) toggleReviewed(currentFile);
+      if (currentFile) toggleViewed(currentFile);
     },
     toggleLeftSidebar: toggleLeft,
     toggleRightSidebar: toggleRight,
@@ -269,7 +272,7 @@ function AppContent() {
   return (
     <div className="h-screen flex flex-col zen-noise">
       <ProgressBar
-        reviewedCount={reviewedCount}
+        reviewedCount={viewedCount}
         totalFiles={orderedFiles.length}
       />
 
@@ -286,8 +289,8 @@ function AppContent() {
               <FileTree
                 files={orderedFiles}
                 currentFile={currentFile}
-                isReviewed={isReviewed}
-                onToggleReviewed={toggleReviewed}
+                isReviewed={isViewed}
+                onToggleReviewed={toggleViewed}
                 onFileClick={handleFileClick}
                 mode={mode}
                 onToggleMode={toggleMode}
