@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { Sliders, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
@@ -17,22 +18,46 @@ export function DiffOptionsMenu({
   onToggleWordWrap,
 }: DiffOptionsMenuProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPos({
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
+      const target = e.target as Node;
+      if (
+        menuRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      ) {
+        return;
       }
+      setOpen(false);
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <Button
+        ref={triggerRef}
         variant="ghost"
         size="sm"
         onClick={() => setOpen((o) => !o)}
@@ -40,10 +65,12 @@ export function DiffOptionsMenu({
       >
         <Sliders className="w-3.5 h-3.5" />
       </Button>
-      {open && (
+      {open && pos && createPortal(
         <div
+          ref={menuRef}
+          style={{ top: pos.top, right: pos.right }}
           className={cn(
-            "absolute right-0 top-full mt-1 z-20 w-56",
+            "fixed z-50 w-56",
             "bg-zen-elevated border border-zen-border rounded-lg shadow-overlay",
             "p-1 animate-fade-in"
           )}
@@ -102,8 +129,9 @@ export function DiffOptionsMenu({
             />
             Word wrap
           </button>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

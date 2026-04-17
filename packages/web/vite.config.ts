@@ -14,6 +14,9 @@ export default defineConfig({
       "/api": "http://localhost:4173",
     },
   },
+  worker: {
+    format: "es",
+  },
   build: {
     outDir: "dist",
   },

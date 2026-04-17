@@ -142,7 +142,7 @@ function FolderSection({
         <button
           onClick={() => setOpen(!open)}
           className={cn(
-            "w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors group",
+            "w-full flex items-center gap-1.5 px-2 py-1.5 text-left transition-colors group",
             hasCurrent ? "text-zen-text" : "text-zen-muted hover:text-zen-text-secondary"
           )}
         >
@@ -152,11 +152,11 @@ function FolderSection({
               open && "rotate-90"
             )}
           />
-          <span className="text-2xs font-mono truncate flex-1 tracking-wide">
+          <span className="text-2xs font-mono truncate min-w-0 flex-1 tracking-wide">
             {group.dir}/
           </span>
           <span className={cn(
-            "text-2xs font-mono tabular-nums",
+            "text-2xs font-mono tabular-nums shrink-0",
             allReviewed ? "text-zen-add-text/60" : "text-zen-muted/40"
           )}>
             {reviewedInGroup}/{group.files.length}
@@ -165,7 +165,7 @@ function FolderSection({
       )}
 
       {(open || !group.dir) && (
-        <div className={group.dir ? "ml-2" : ""}>
+        <div className={group.dir ? "ml-1" : ""}>
           {group.files.map((file) => {
             const fileName = file.path.split("/").pop() ?? file.path;
             const reviewed = isReviewed(file.path);
@@ -176,7 +176,7 @@ function FolderSection({
                 key={file.path}
                 title={file.path}
                 className={cn(
-                  "flex items-center gap-2 pl-4 pr-3 py-1 cursor-pointer text-[13px]",
+                  "flex items-center gap-1.5 pl-2 pr-2 py-1 cursor-pointer text-[13px]",
                   "group/file transition-all duration-100 border-l-2",
                   isCurrent
                     ? "bg-zen-accent-dim text-zen-text border-zen-accent"
@@ -199,7 +199,7 @@ function FolderSection({
                 </span>
                 <span
                   className={cn(
-                    "truncate font-mono text-[13px] transition-opacity",
+                    "truncate min-w-0 flex-1 font-mono text-[13px] transition-opacity",
                     reviewed && "opacity-40 line-through"
                   )}
                 >
@@ -238,13 +238,13 @@ function TreeNodeView({
       <div
         title={node.path}
         className={cn(
-          "flex items-center gap-2 pr-3 py-1 cursor-pointer text-[13px]",
+          "flex items-center gap-1.5 pr-2 py-1 cursor-pointer text-[13px]",
           "group/file transition-all duration-100 border-l-2",
           isCurrent
             ? "bg-zen-accent-dim text-zen-text border-zen-accent"
             : "text-zen-text-secondary hover:bg-zen-elevated/50 hover:text-zen-text border-transparent"
         )}
-        style={{ paddingLeft: `${depth * 12 + 16}px` }}
+        style={{ paddingLeft: `${depth * 8 + 6}px` }}
         onClick={() => onFileClick(node.path)}
       >
         <Checkbox
@@ -262,7 +262,7 @@ function TreeNodeView({
         </span>
         <span
           className={cn(
-            "truncate font-mono text-[13px] transition-opacity",
+            "truncate min-w-0 flex-1 font-mono text-[13px] transition-opacity",
             reviewed && "opacity-40 line-through"
           )}
         >
@@ -280,10 +280,10 @@ function TreeNodeView({
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "w-full flex items-center gap-1.5 py-1.5 pr-3 text-left transition-colors group",
+          "w-full flex items-center gap-1 py-1.5 pr-2 text-left transition-colors group",
           "text-zen-muted hover:text-zen-text-secondary"
         )}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        style={{ paddingLeft: `${depth * 8 + 4}px` }}
       >
         <ChevronRight
           className={cn(
@@ -291,12 +291,12 @@ function TreeNodeView({
             open && "rotate-90"
           )}
         />
-        <span className="text-2xs font-mono truncate flex-1 tracking-wide">
+        <span className="text-2xs font-mono truncate min-w-0 flex-1 tracking-wide">
           {node.name}/
         </span>
         <span
           className={cn(
-            "text-2xs font-mono tabular-nums",
+            "text-2xs font-mono tabular-nums shrink-0",
             allReviewed ? "text-zen-add-text/60" : "text-zen-muted/40"
           )}
         >

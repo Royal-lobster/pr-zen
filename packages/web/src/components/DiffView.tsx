@@ -2,14 +2,19 @@ import { useMemo } from "react";
 import {
   PatchDiff,
   Virtualizer,
+  WorkerPoolContextProvider,
   type DiffLineAnnotation,
 } from "@pierre/diffs/react";
-import { FileCode, ArrowLeft, Check } from "lucide-react";
+import { FileCode, ArrowLeft } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { cn } from "../lib/utils";
+import { Checkbox } from "./ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import type { PRFile, PRComment } from "../lib/api";
 import { CommentThread } from "./CommentThread";
 import { InlineCommentForm } from "./InlineCommentForm";
+import DiffWorker from "@pierre/diffs/worker/worker-portable.js?worker";
+
+const workerFactory = () => new DiffWorker();
 
 interface PendingComment {
   path: string;
@@ -80,6 +85,27 @@ export function DiffView({
   }, [comments]);
 
   return (
+    <WorkerPoolContextProvider
+      poolOptions={{ workerFactory }}
+      highlighterOptions={{
+        theme: { dark: "pierre-dark", light: "pierre-light" },
+        langs: [
+          "typescript",
+          "tsx",
+          "javascript",
+          "jsx",
+          "json",
+          "css",
+          "html",
+          "markdown",
+          "yaml",
+          "bash",
+          "python",
+          "go",
+          "rust",
+        ],
+      }}
+    >
     <Virtualizer
       className="h-full overflow-auto"
       contentClassName="space-y-3 p-4"
@@ -170,6 +196,7 @@ export function DiffView({
                 lineHoverHighlight: "both",
                 enableGutterUtility: true,
                 overflow: wordWrap ? "wrap" : "scroll",
+                collapsed: isViewed(file.path),
                 onGutterUtilityClick: (range: {
                   start: number;
                   end: number;
@@ -214,6 +241,19 @@ export function DiffView({
                 const viewed = isViewed(file.path);
                 return (
                   <div className="flex items-center gap-2.5 px-3 py-2 w-full">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Checkbox
+                          checked={viewed}
+                          onCheckedChange={() => onToggleViewed(file.path)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={viewed ? "Mark as unviewed" : "Mark as viewed"}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        {viewed ? "Mark as unviewed" : "Mark as viewed"}
+                      </TooltipContent>
+                    </Tooltip>
                     <FileCode className="w-3.5 h-3.5 text-zen-muted shrink-0" />
                     <span className="text-xs font-mono text-zen-text truncate" title={file.path}>
                       {file.path}
@@ -227,32 +267,6 @@ export function DiffView({
                     <Badge variant={statusBadgeVariant[file.status] ?? "default"} className="ml-auto shrink-0">
                       {file.status}
                     </Badge>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleViewed(file.path);
-                      }}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2 py-1 rounded-md border text-2xs transition-colors shrink-0",
-                        viewed
-                          ? "bg-zen-accent-dim border-zen-accent/40 text-zen-accent"
-                          : "bg-zen-surface border-zen-border text-zen-text-secondary hover:border-zen-muted"
-                      )}
-                      title={viewed ? "Mark as unviewed" : "Mark as viewed"}
-                    >
-                      <span
-                        className={cn(
-                          "w-3 h-3 rounded-sm border flex items-center justify-center shrink-0",
-                          viewed
-                            ? "bg-zen-accent border-zen-accent text-zen-bg"
-                            : "border-zen-muted"
-                        )}
-                      >
-                        {viewed && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
-                      </span>
-                      Viewed
-                    </button>
                   </div>
                 );
               }}
@@ -261,5 +275,6 @@ export function DiffView({
         );
       })}
     </Virtualizer>
+    </WorkerPoolContextProvider>
   );
 }

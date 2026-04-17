@@ -7,6 +7,7 @@ import { CommandPalette, type Command } from "./components/CommandPalette";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Button } from "./components/ui/button";
 import { Badge } from "./components/ui/badge";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useViewedState } from "./hooks/useViewedState";
 import { useFileOrder } from "./hooks/useFileOrder";
@@ -15,8 +16,13 @@ import { useDiffPrefs } from "./hooks/useDiffPrefs";
 import { useFileTreeMode } from "./hooks/useFileTreeMode";
 import { useActionError } from "./hooks/useActionError";
 import { DiffOptionsMenu } from "./components/DiffOptionsMenu";
-import { cn } from "./lib/utils";
-import { useState, useCallback, useRef, useMemo, lazy, Suspense } from "react";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+  type PanelImperativeHandle,
+} from "./components/ui/resizable";
+import { useState, useCallback, useRef, useMemo, useEffect, lazy, Suspense } from "react";
 import { api } from "./lib/api";
 import { ArrowLeft, Loader2, AlertCircle, X } from "lucide-react";
 
@@ -92,6 +98,22 @@ function AppContent() {
   const { diffStyle, wordWrap, toggleDiffStyle, toggleWordWrap } = useDiffPrefs();
   const { treeMode, toggleTreeMode } = useFileTreeMode();
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const leftPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const rightPanelRef = useRef<PanelImperativeHandle | null>(null);
+
+  useEffect(() => {
+    const panel = leftPanelRef.current;
+    if (!panel) return;
+    if (leftOpen && panel.isCollapsed()) panel.expand();
+    else if (!leftOpen && !panel.isCollapsed()) panel.collapse();
+  }, [leftOpen]);
+
+  useEffect(() => {
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+    if (rightOpen && panel.isCollapsed()) panel.expand();
+    else if (!rightOpen && !panel.isCollapsed()) panel.collapse();
+  }, [rightOpen]);
 
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
 
@@ -270,22 +292,33 @@ function AppContent() {
   if (error || !data) return <ErrorScreen message={error ?? "Failed to load PR"} />;
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="h-screen flex flex-col zen-noise">
       <ProgressBar
         reviewedCount={viewedCount}
         totalFiles={orderedFiles.length}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar -- File Tree */}
-        <div
-          className={cn(
-            "shrink-0 border-r border-zen-border bg-zen-surface overflow-hidden transition-sidebar",
-            leftOpen ? "w-64" : "w-0"
-          )}
-        >
-          {leftOpen && (
-            <div className="w-64 h-full animate-slide-in-left">
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup orientation="horizontal" className="h-full">
+          <ResizablePanel
+            panelRef={leftPanelRef}
+            defaultSize="240px"
+            minSize="220px"
+            maxSize="500px"
+            collapsible
+            collapsedSize={0}
+            className="bg-zen-surface border-r border-zen-border"
+            onResize={(size, _id, prev) => {
+              const wasCollapsed = (prev?.inPixels ?? size.inPixels) === 0;
+              const nowCollapsed = size.inPixels === 0;
+              if (wasCollapsed !== nowCollapsed) {
+                if (nowCollapsed && leftOpen) toggleLeft();
+                if (!nowCollapsed && !leftOpen) toggleLeft();
+              }
+            }}
+          >
+            <div className="h-full overflow-hidden">
               <FileTree
                 files={orderedFiles}
                 currentFile={currentFile}
@@ -298,76 +331,77 @@ function AppContent() {
                 onToggleTreeMode={toggleTreeMode}
               />
             </div>
-          )}
-        </div>
-
-        {!leftOpen && (
-          <div
-            onClick={toggleLeft}
-            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors duration-200 shrink-0"
-            title="Show file tree (\u2318[)"
-          />
-        )}
-
-        {/* Center -- Diff View */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-2 bg-zen-surface/80 backdrop-blur-sm border-b border-zen-border">
-            {activeCommit && (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => setActiveCommit(null)}>
-                  <ArrowLeft className="w-3 h-3" />
-                  Back to full diff
-                </Button>
-                <Badge variant="accent">
-                  {activeCommit.slice(0, 7)}
-                </Badge>
-                <span className="text-2xs text-zen-muted">
-                  Showing {orderedFiles.length} file{orderedFiles.length === 1 ? "" : "s"} from this commit
-                </span>
-              </>
-            )}
-            <div className="ml-auto">
-              <DiffOptionsMenu
-                diffStyle={diffStyle}
-                wordWrap={wordWrap}
-                onToggleDiffStyle={toggleDiffStyle}
-                onToggleWordWrap={toggleWordWrap}
-              />
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <Suspense fallback={
-              <div className="flex-1 flex items-center justify-center h-full">
-                <Loader2 className="w-5 h-5 animate-spin text-zen-muted" />
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel minSize="400px">
+            <div className="h-full flex flex-col">
+              <div className="flex items-center gap-3 px-4 py-2 bg-zen-surface/80 backdrop-blur-sm border-b border-zen-border">
+                {activeCommit && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveCommit(null)}>
+                      <ArrowLeft className="w-3 h-3" />
+                      Back to full diff
+                    </Button>
+                    <Badge variant="accent">
+                      {activeCommit.slice(0, 7)}
+                    </Badge>
+                    <span className="text-2xs text-zen-muted">
+                      Showing {orderedFiles.length} file{orderedFiles.length === 1 ? "" : "s"} from this commit
+                    </span>
+                  </>
+                )}
+                <div className="ml-auto">
+                  <DiffOptionsMenu
+                    diffStyle={diffStyle}
+                    wordWrap={wordWrap}
+                    onToggleDiffStyle={toggleDiffStyle}
+                    onToggleWordWrap={toggleWordWrap}
+                  />
+                </div>
               </div>
-            }>
-              <DiffView
-                files={orderedFiles}
-                comments={data.comments}
-                pendingComment={pendingComment}
-                onGutterClick={handleGutterClick}
-                onSubmitInlineComment={handleSubmitInlineComment}
-                onCancelComment={() => setPendingComment(null)}
-                onReplyToComment={handleReplyToComment}
-                fileRef={handleFileRef}
-                diffStyle={diffStyle}
-                wordWrap={wordWrap}
-                isViewed={isViewed}
-                onToggleViewed={toggleViewed}
-              />
-            </Suspense>
-          </div>
-        </div>
-
-        {/* Right Sidebar -- Context Panel */}
-        <div
-          className={cn(
-            "shrink-0 border-l border-zen-border bg-zen-surface overflow-hidden transition-sidebar",
-            rightOpen ? "w-80" : "w-0"
-          )}
-        >
-          {rightOpen && (
-            <div className="w-80 h-full animate-slide-in-right">
+              <div className="flex-1 overflow-hidden">
+                <Suspense fallback={
+                  <div className="flex-1 flex items-center justify-center h-full">
+                    <Loader2 className="w-5 h-5 animate-spin text-zen-muted" />
+                  </div>
+                }>
+                  <DiffView
+                    files={orderedFiles}
+                    comments={data.comments}
+                    pendingComment={pendingComment}
+                    onGutterClick={handleGutterClick}
+                    onSubmitInlineComment={handleSubmitInlineComment}
+                    onCancelComment={() => setPendingComment(null)}
+                    onReplyToComment={handleReplyToComment}
+                    fileRef={handleFileRef}
+                    diffStyle={diffStyle}
+                    wordWrap={wordWrap}
+                    isViewed={isViewed}
+                    onToggleViewed={toggleViewed}
+                  />
+                </Suspense>
+              </div>
+            </div>
+          </ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel
+            panelRef={rightPanelRef}
+            defaultSize="320px"
+            minSize="280px"
+            maxSize="600px"
+            collapsible
+            collapsedSize={0}
+            className="bg-zen-surface border-l border-zen-border"
+            onResize={(size, _id, prev) => {
+              const wasCollapsed = (prev?.inPixels ?? size.inPixels) === 0;
+              const nowCollapsed = size.inPixels === 0;
+              if (wasCollapsed !== nowCollapsed) {
+                if (nowCollapsed && rightOpen) toggleRight();
+                if (!nowCollapsed && !rightOpen) toggleRight();
+              }
+            }}
+          >
+            <div className="h-full overflow-hidden">
               <ContextPanel
                 pr={data.pr}
                 comments={data.comments}
@@ -377,16 +411,8 @@ function AppContent() {
                 onPostComment={handlePostComment}
               />
             </div>
-          )}
-        </div>
-
-        {!rightOpen && (
-          <div
-            onClick={toggleRight}
-            className="w-1 bg-zen-border hover:bg-zen-accent cursor-pointer transition-colors duration-200 shrink-0"
-            title="Show context panel (\u2318])"
-          />
-        )}
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
 
       <BottomBar onSubmitReview={handleSubmitReview} />
@@ -417,6 +443,7 @@ function AppContent() {
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 }
 
