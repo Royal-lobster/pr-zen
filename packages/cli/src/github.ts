@@ -230,7 +230,14 @@ export async function postInlineComment(
   owner: string,
   repo: string,
   prNumber: number,
-  params: { body: string; path: string; line: number; side: string }
+  params: {
+    body: string;
+    path: string;
+    line: number;
+    side: string;
+    startLine?: number;
+    startSide?: string;
+  }
 ): Promise<PRComment> {
   const kit = await getOctokit();
   const commitRes = await kit.pulls.get({
@@ -238,6 +245,8 @@ export async function postInlineComment(
     repo,
     pull_number: prNumber,
   });
+  const multiLine =
+    params.startLine !== undefined && params.startLine !== params.line;
   const res = await kit.pulls.createReviewComment({
     owner,
     repo,
@@ -247,6 +256,12 @@ export async function postInlineComment(
     path: params.path,
     line: params.line,
     side: params.side as "LEFT" | "RIGHT",
+    ...(multiLine
+      ? {
+          start_line: params.startLine!,
+          start_side: (params.startSide ?? params.side) as "LEFT" | "RIGHT",
+        }
+      : {}),
   });
   return {
     id: res.data.id,

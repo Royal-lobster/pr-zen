@@ -78,8 +78,10 @@ function AppContent() {
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [pendingComment, setPendingComment] = useState<{
     path: string;
-    line: number;
-    side: string;
+    startLine: number;
+    endLine: number;
+    startSide: string;
+    endSide: string;
   } | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -133,12 +135,14 @@ function AppContent() {
   );
 
   const handleGutterClick = useCallback(
-    (params: { path: string; line: number; side: "LEFT" | "RIGHT" }) => {
-      setPendingComment({
-        path: params.path,
-        line: params.line,
-        side: params.side,
-      });
+    (params: {
+      path: string;
+      startLine: number;
+      endLine: number;
+      startSide: "LEFT" | "RIGHT";
+      endSide: "LEFT" | "RIGHT";
+    }) => {
+      setPendingComment(params);
     },
     []
   );
@@ -149,6 +153,8 @@ function AppContent() {
       path: string;
       line: number;
       side: string;
+      startLine?: number;
+      startSide?: string;
     }) => {
       const comment = await wrapAction(
         () => api.postInlineComment(params),

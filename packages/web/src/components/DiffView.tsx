@@ -13,8 +13,10 @@ import { InlineCommentForm } from "./InlineCommentForm";
 
 interface PendingComment {
   path: string;
-  line: number;
-  side: string;
+  startLine: number;
+  endLine: number;
+  startSide: string;
+  endSide: string;
 }
 
 interface DiffViewProps {
@@ -23,14 +25,18 @@ interface DiffViewProps {
   pendingComment: PendingComment | null;
   onGutterClick: (params: {
     path: string;
-    line: number;
-    side: "LEFT" | "RIGHT";
+    startLine: number;
+    endLine: number;
+    startSide: "LEFT" | "RIGHT";
+    endSide: "LEFT" | "RIGHT";
   }) => void;
   onSubmitInlineComment: (params: {
     body: string;
     path: string;
     line: number;
     side: string;
+    startLine?: number;
+    startSide?: string;
   }) => Promise<void>;
   onCancelComment: () => void;
   onReplyToComment: (commentId: number, body: string) => Promise<void>;
@@ -129,8 +135,8 @@ export function DiffView({
 
         if (pendingComment && pendingComment.path === file.path) {
           annotations.push({
-            lineNumber: pendingComment.line,
-            side: pendingComment.side === "LEFT" ? "deletions" : "additions",
+            lineNumber: pendingComment.endLine,
+            side: pendingComment.endSide === "LEFT" ? "deletions" : "additions",
             metadata: { isPending: true },
           });
         }
@@ -160,11 +166,24 @@ export function DiffView({
                 lineHoverHighlight: "both",
                 enableGutterUtility: true,
                 overflow: wordWrap ? "wrap" : "scroll",
-                onGutterUtilityClick: (range: { start: number }) => {
+                onGutterUtilityClick: (range: {
+                  start: number;
+                  end: number;
+                  side?: "deletions" | "additions";
+                  endSide?: "deletions" | "additions";
+                }) => {
+                  const startSide =
+                    range.side === "deletions" ? "LEFT" : "RIGHT";
+                  const endSide =
+                    (range.endSide ?? range.side) === "deletions"
+                      ? "LEFT"
+                      : "RIGHT";
                   onGutterClick({
                     path: file.path,
-                    line: range.start,
-                    side: "RIGHT",
+                    startLine: range.start,
+                    endLine: range.end,
+                    startSide,
+                    endSide,
                   });
                 },
               }}
@@ -173,8 +192,10 @@ export function DiffView({
                 ann.metadata.isPending && pendingComment ? (
                   <InlineCommentForm
                     path={file.path}
-                    line={pendingComment.line}
-                    side={pendingComment.side}
+                    startLine={pendingComment.startLine}
+                    endLine={pendingComment.endLine}
+                    startSide={pendingComment.startSide}
+                    endSide={pendingComment.endSide}
                     onSubmit={onSubmitInlineComment}
                     onCancel={onCancelComment}
                   />

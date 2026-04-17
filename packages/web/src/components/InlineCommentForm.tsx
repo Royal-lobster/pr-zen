@@ -5,21 +5,27 @@ import { cn } from "../lib/utils";
 
 interface InlineCommentFormProps {
   path: string;
-  line: number;
-  side: string;
+  startLine: number;
+  endLine: number;
+  startSide: string;
+  endSide: string;
   onSubmit: (params: {
     body: string;
     path: string;
     line: number;
     side: string;
+    startLine?: number;
+    startSide?: string;
   }) => Promise<void>;
   onCancel: () => void;
 }
 
 export function InlineCommentForm({
   path,
-  line,
-  side,
+  startLine,
+  endLine,
+  startSide,
+  endSide,
   onSubmit,
   onCancel,
 }: InlineCommentFormProps) {
@@ -36,12 +42,31 @@ export function InlineCommentForm({
     if (!body.trim() || submitting) return;
     setSubmitting(true);
     try {
-      await onSubmit({ body: body.trim(), path, line, side });
+      const payload =
+        startLine !== endLine
+          ? {
+              body: body.trim(),
+              path,
+              line: endLine,
+              side: endSide,
+              startLine,
+              startSide,
+            }
+          : {
+              body: body.trim(),
+              path,
+              line: endLine,
+              side: endSide,
+            };
+      await onSubmit(payload);
       onCancel();
     } finally {
       setSubmitting(false);
     }
   }
+
+  const locationLabel =
+    startLine === endLine ? `${path}:${endLine}` : `${path}:${startLine}-${endLine}`;
 
   return (
     <form
@@ -49,7 +74,7 @@ export function InlineCommentForm({
       className="border border-zen-accent/20 rounded-lg bg-zen-bg my-1.5 mx-2 p-3 shadow-card animate-fade-in-up"
     >
       <div className="text-2xs text-zen-muted font-mono mb-2">
-        {path}:{line}
+        {locationLabel}
       </div>
       <textarea
         ref={textareaRef}

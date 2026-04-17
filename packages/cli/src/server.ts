@@ -108,7 +108,14 @@ export function startServer(config: ServerConfig): {
           path: string;
           line: number;
           side: string;
+          startLine?: number;
+          startSide?: string;
         };
+        const hasValidStart =
+          params.startLine === undefined ||
+          (Number.isInteger(params.startLine) &&
+            (params.startSide === "LEFT" || params.startSide === "RIGHT") &&
+            params.startLine <= params.line);
         if (
           typeof params.body !== "string" ||
           params.body.trim().length === 0 ||
@@ -116,12 +123,13 @@ export function startServer(config: ServerConfig): {
           params.path.trim().length === 0 ||
           typeof params.line !== "number" ||
           !Number.isInteger(params.line) ||
-          (params.side !== "LEFT" && params.side !== "RIGHT")
+          (params.side !== "LEFT" && params.side !== "RIGHT") ||
+          !hasValidStart
         ) {
           return Response.json(
             {
               error:
-                "body (non-empty string), path (non-empty string), line (integer), and side (LEFT|RIGHT) are required",
+                "body (non-empty string), path (non-empty string), line (integer), side (LEFT|RIGHT) required; if startLine given, startSide (LEFT|RIGHT) required and startLine <= line",
             },
             { status: 400, headers: corsHeaders }
           );

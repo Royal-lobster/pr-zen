@@ -78,6 +78,8 @@ export const api = {
     path: string;
     line: number;
     side: string;
+    startLine?: number;
+    startSide?: string;
   }) =>
     fetchJSON<PRComment>("/api/comments/inline", {
       method: "POST",
