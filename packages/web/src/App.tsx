@@ -12,6 +12,7 @@ import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
 import { useDiffPrefs } from "./hooks/useDiffPrefs";
+import { useFileTreeMode } from "./hooks/useFileTreeMode";
 import { useActionError } from "./hooks/useActionError";
 import { DiffOptionsMenu } from "./components/DiffOptionsMenu";
 import { cn } from "./lib/utils";
@@ -84,6 +85,7 @@ function AppContent() {
   const [helpOpen, setHelpOpen] = useState(false);
   const { actionError, setActionError, wrapAction } = useActionError();
   const { diffStyle, wordWrap, toggleDiffStyle, toggleWordWrap } = useDiffPrefs();
+  const { treeMode, toggleTreeMode } = useFileTreeMode();
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
@@ -215,6 +217,11 @@ function AppContent() {
         action: toggleMode,
       },
       {
+        id: "toggle-tree-mode",
+        label: `Switch to ${treeMode === "flat" ? "tree" : "flat"} file view`,
+        action: toggleTreeMode,
+      },
+      {
         id: "toggle-diff-style",
         label: "Toggle split/unified diff",
         action: toggleDiffStyle,
@@ -232,7 +239,7 @@ function AppContent() {
         action: () => setHelpOpen(true),
       },
     ],
-    [toggleLeft, toggleRight, toggleMode, mode, toggleDiffStyle, wordWrap, toggleWordWrap]
+    [toggleLeft, toggleRight, toggleMode, mode, toggleDiffStyle, wordWrap, toggleWordWrap, treeMode, toggleTreeMode]
   );
 
   useKeyboard({
@@ -278,6 +285,8 @@ function AppContent() {
                 onFileClick={handleFileClick}
                 mode={mode}
                 onToggleMode={toggleMode}
+                treeMode={treeMode}
+                onToggleTreeMode={toggleTreeMode}
               />
             </div>
           )}
