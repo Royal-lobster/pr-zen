@@ -27,6 +27,7 @@ export function usePR(): PRState {
   const [commitFileOrder, setCommitFileOrder] = useState<string[] | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const dataLoaded = useRef(false);
+  const latestSha = useRef<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -43,6 +44,7 @@ export function usePR(): PRState {
   }, []);
 
   const setActiveCommit = useCallback(async (sha: string | null) => {
+    latestSha.current = sha;
     setActiveCommitState(sha);
     if (!sha) {
       setCommitFiles(null);
@@ -51,10 +53,15 @@ export function usePR(): PRState {
     }
     try {
       const { files, fileOrder } = await api.getDiff(sha);
+      if (latestSha.current !== sha) return;
       setCommitFiles(files);
       setCommitFileOrder(fileOrder);
     } catch (e) {
-      console.error("Failed to fetch commit diff:", e);
+      if (latestSha.current === sha) {
+        setError(
+          e instanceof Error ? e.message : "Failed to fetch commit diff"
+        );
+      }
     }
   }, []);
 

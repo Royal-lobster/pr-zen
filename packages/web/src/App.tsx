@@ -321,6 +321,9 @@ function AppContent() {
                 <Badge variant="accent">
                   {activeCommit.slice(0, 7)}
                 </Badge>
+                <span className="text-2xs text-zen-muted">
+                  Showing {orderedFiles.length} file{orderedFiles.length === 1 ? "" : "s"} from this commit
+                </span>
               </>
             )}
             <div className="ml-auto">
