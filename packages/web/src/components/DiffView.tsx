@@ -4,7 +4,7 @@ import {
   Virtualizer,
   type DiffLineAnnotation,
 } from "@pierre/diffs/react";
-import { FileCode, ArrowLeft } from "lucide-react";
+import { FileCode, ArrowLeft, Check } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
 import type { PRFile, PRComment } from "../lib/api";
@@ -43,6 +43,8 @@ interface DiffViewProps {
   fileRef?: (path: string, el: HTMLDivElement | null) => void;
   diffStyle: "unified" | "split";
   wordWrap: boolean;
+  isViewed: (path: string) => boolean;
+  onToggleViewed: (path: string) => void;
 }
 
 const statusBadgeVariant: Record<string, "success" | "accent" | "destructive" | "warn"> = {
@@ -63,6 +65,8 @@ export function DiffView({
   fileRef,
   diffStyle,
   wordWrap,
+  isViewed,
+  onToggleViewed,
 }: DiffViewProps) {
   const commentsByFile = useMemo(() => {
     const map = new Map<string, PRComment[]>();
@@ -95,7 +99,7 @@ export function DiffView({
             >
               <div className="flex items-center gap-2 px-4 py-2.5 bg-zen-surface border-b border-zen-border">
                 <FileCode className="w-3.5 h-3.5 text-zen-muted" />
-                <span className="text-xs font-mono text-zen-text truncate">
+                <span className="text-xs font-mono text-zen-text truncate" title={file.path}>
                   {file.path}
                 </span>
               </div>
@@ -206,23 +210,52 @@ export function DiffView({
                   />
                 ) : null
               }
-              renderHeaderPrefix={() => (
-                <div className="flex items-center gap-2.5 px-3 py-2">
-                  <FileCode className="w-3.5 h-3.5 text-zen-muted shrink-0" />
-                  <span className="text-xs font-mono text-zen-text truncate">
-                    {file.path}
-                  </span>
-                  {file.previousPath && (
-                    <span className="flex items-center gap-1 text-xs text-zen-muted shrink-0">
-                      <ArrowLeft className="w-3 h-3" />
-                      <span className="font-mono truncate max-w-[150px]">{file.previousPath}</span>
+              renderHeaderPrefix={() => {
+                const viewed = isViewed(file.path);
+                return (
+                  <div className="flex items-center gap-2.5 px-3 py-2 w-full">
+                    <FileCode className="w-3.5 h-3.5 text-zen-muted shrink-0" />
+                    <span className="text-xs font-mono text-zen-text truncate" title={file.path}>
+                      {file.path}
                     </span>
-                  )}
-                  <Badge variant={statusBadgeVariant[file.status] ?? "default"} className="ml-auto shrink-0">
-                    {file.status}
-                  </Badge>
-                </div>
-              )}
+                    {file.previousPath && (
+                      <span className="flex items-center gap-1 text-xs text-zen-muted shrink-0">
+                        <ArrowLeft className="w-3 h-3" />
+                        <span className="font-mono truncate max-w-[150px]">{file.previousPath}</span>
+                      </span>
+                    )}
+                    <Badge variant={statusBadgeVariant[file.status] ?? "default"} className="ml-auto shrink-0">
+                      {file.status}
+                    </Badge>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleViewed(file.path);
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2 py-1 rounded-md border text-2xs transition-colors shrink-0",
+                        viewed
+                          ? "bg-zen-accent-dim border-zen-accent/40 text-zen-accent"
+                          : "bg-zen-surface border-zen-border text-zen-text-secondary hover:border-zen-muted"
+                      )}
+                      title={viewed ? "Mark as unviewed" : "Mark as viewed"}
+                    >
+                      <span
+                        className={cn(
+                          "w-3 h-3 rounded-sm border flex items-center justify-center shrink-0",
+                          viewed
+                            ? "bg-zen-accent border-zen-accent text-zen-bg"
+                            : "border-zen-muted"
+                        )}
+                      >
+                        {viewed && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
+                      </span>
+                      Viewed
+                    </button>
+                  </div>
+                );
+              }}
             />
           </div>
         );

@@ -349,6 +349,8 @@ function AppContent() {
                 fileRef={handleFileRef}
                 diffStyle={diffStyle}
                 wordWrap={wordWrap}
+                isViewed={isViewed}
+                onToggleViewed={toggleViewed}
               />
             </Suspense>
           </div>
