@@ -9,7 +9,7 @@ interface MarkdownProps {
 
 export function Markdown({ children, className }: MarkdownProps) {
   return (
-    <div className={cn("zen-prose break-words", className)}>
+    <div className={cn("zen-prose", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

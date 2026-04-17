@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { cn } from "../lib/utils";
 import type { PRMetadata } from "../lib/api";
 import { Markdown } from "./Markdown";
 
