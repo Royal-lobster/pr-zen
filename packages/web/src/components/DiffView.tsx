@@ -36,6 +36,7 @@ interface DiffViewProps {
   onReplyToComment: (commentId: number, body: string) => Promise<void>;
   fileRef?: (path: string, el: HTMLDivElement | null) => void;
   diffStyle: "unified" | "split";
+  wordWrap: boolean;
 }
 
 const statusBadgeVariant: Record<string, "success" | "accent" | "destructive" | "warn"> = {
@@ -55,6 +56,7 @@ export function DiffView({
   onReplyToComment,
   fileRef,
   diffStyle,
+  wordWrap,
 }: DiffViewProps) {
   const commentsByFile = useMemo(() => {
     const map = new Map<string, PRComment[]>();
@@ -157,7 +159,7 @@ export function DiffView({
                 expandUnchanged: true,
                 lineHoverHighlight: "both",
                 enableGutterUtility: true,
-                overflow: "scroll",
+                overflow: wordWrap ? "wrap" : "scroll",
                 onGutterUtilityClick: (range: { start: number }) => {
                   onGutterClick({
                     path: file.path,

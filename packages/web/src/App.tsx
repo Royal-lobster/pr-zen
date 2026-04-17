@@ -11,8 +11,9 @@ import { useSidebarState } from "./hooks/useSidebarState";
 import { useReviewProgress } from "./hooks/useReviewProgress";
 import { useFileOrder } from "./hooks/useFileOrder";
 import { useKeyboard } from "./hooks/useKeyboard";
-import { useDiffStyle } from "./hooks/useDiffStyle";
+import { useDiffPrefs } from "./hooks/useDiffPrefs";
 import { useActionError } from "./hooks/useActionError";
+import { DiffOptionsMenu } from "./components/DiffOptionsMenu";
 import { cn } from "./lib/utils";
 import { useState, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { api } from "./lib/api";
@@ -82,7 +83,7 @@ function AppContent() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const { actionError, setActionError, wrapAction } = useActionError();
-  const { diffStyle, toggleDiffStyle } = useDiffStyle();
+  const { diffStyle, wordWrap, toggleDiffStyle, toggleWordWrap } = useDiffPrefs();
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const currentFile = orderedFiles[currentFileIndex]?.path ?? null;
@@ -219,13 +220,19 @@ function AppContent() {
         action: toggleDiffStyle,
       },
       {
+        id: "toggle-wrap",
+        label: `${wordWrap ? "Disable" : "Enable"} word wrap`,
+        shortcut: "w",
+        action: toggleWordWrap,
+      },
+      {
         id: "shortcuts",
         label: "Show keyboard shortcuts",
         shortcut: "?",
         action: () => setHelpOpen(true),
       },
     ],
-    [toggleLeft, toggleRight, toggleMode, mode, toggleDiffStyle]
+    [toggleLeft, toggleRight, toggleMode, mode, toggleDiffStyle, wordWrap, toggleWordWrap]
   );
 
   useKeyboard({
@@ -240,6 +247,7 @@ function AppContent() {
     submitReview: () => {},
     showHelp: () => setHelpOpen(true),
     toggleDiffStyle,
+    toggleWordWrap,
   });
 
   if (loading) return <LoadingScreen />;
@@ -285,17 +293,27 @@ function AppContent() {
 
         {/* Center -- Diff View */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          {activeCommit && (
-            <div className="flex items-center gap-3 px-4 py-2 bg-zen-surface/80 backdrop-blur-sm border-b border-zen-border">
-              <Button variant="ghost" size="sm" onClick={() => setActiveCommit(null)}>
-                <ArrowLeft className="w-3 h-3" />
-                Back to full diff
-              </Button>
-              <Badge variant="accent">
-                {activeCommit.slice(0, 7)}
-              </Badge>
+          <div className="flex items-center gap-3 px-4 py-2 bg-zen-surface/80 backdrop-blur-sm border-b border-zen-border">
+            {activeCommit && (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setActiveCommit(null)}>
+                  <ArrowLeft className="w-3 h-3" />
+                  Back to full diff
+                </Button>
+                <Badge variant="accent">
+                  {activeCommit.slice(0, 7)}
+                </Badge>
+              </>
+            )}
+            <div className="ml-auto">
+              <DiffOptionsMenu
+                diffStyle={diffStyle}
+                wordWrap={wordWrap}
+                onToggleDiffStyle={toggleDiffStyle}
+                onToggleWordWrap={toggleWordWrap}
+              />
             </div>
-          )}
+          </div>
           <div className="flex-1 overflow-hidden">
             <Suspense fallback={
               <div className="flex-1 flex items-center justify-center h-full">
@@ -312,6 +330,7 @@ function AppContent() {
                 onReplyToComment={handleReplyToComment}
                 fileRef={handleFileRef}
                 diffStyle={diffStyle}
+                wordWrap={wordWrap}
               />
             </Suspense>
           </div>

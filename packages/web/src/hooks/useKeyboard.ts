@@ -10,6 +10,7 @@ interface KeyboardActions {
   submitReview: () => void;
   showHelp: () => void;
   toggleDiffStyle: () => void;
+  toggleWordWrap: () => void;
 }
 
 export function useKeyboard(actions: KeyboardActions) {
@@ -48,6 +49,9 @@ export function useKeyboard(actions: KeyboardActions) {
       } else if (e.key === "?" && !meta) {
         e.preventDefault();
         a.showHelp();
+      } else if (e.key === "w" && !meta) {
+        e.preventDefault();
+        a.toggleWordWrap();
       }
     }
 
