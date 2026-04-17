@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Kbd } from "./ui/kbd";
 import { cn, formatRelativeTime } from "../lib/utils";
 import type { PRComment } from "../lib/api";
+import { Markdown } from "./Markdown";
 
 interface ChatTabProps {
   comments: PRComment[];
@@ -62,9 +63,7 @@ export function ChatTab({ comments, onPostComment }: ChatTabProps) {
                     {formatRelativeTime(comment.createdAt)}
                   </span>
                 </div>
-                <div className="mt-1 zen-prose text-[13px] whitespace-pre-wrap break-words">
-                  {comment.body}
-                </div>
+                <Markdown className="mt-1 text-[13px]">{comment.body}</Markdown>
               </div>
             </div>
           </div>

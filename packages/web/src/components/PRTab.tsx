@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
 import type { PRMetadata } from "../lib/api";
+import { Markdown } from "./Markdown";
 
 interface PRTabProps {
   pr: PRMetadata;
@@ -61,9 +62,7 @@ export function PRTab({ pr }: PRTabProps) {
       {/* Description */}
       {pr.body && (
         <div className="pt-3 border-t border-zen-border">
-          <div className="zen-prose whitespace-pre-wrap break-words">
-            {pr.body}
-          </div>
+          <Markdown>{pr.body}</Markdown>
         </div>
       )}
     </div>

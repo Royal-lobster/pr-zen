@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { cn, formatRelativeTime } from "../lib/utils";
 import type { PRComment } from "../lib/api";
+import { Markdown } from "./Markdown";
 
 interface CommentThreadProps {
   comments: PRComment[];
@@ -47,9 +48,7 @@ export function CommentThread({ comments, onReply }: CommentThreadProps) {
               {formatRelativeTime(c.createdAt)}
             </span>
           </div>
-          <div className="zen-prose text-xs whitespace-pre-wrap pl-6">
-            {c.body}
-          </div>
+          <Markdown className="text-xs pl-6">{c.body}</Markdown>
         </div>
       ))}
       <div className="px-3 py-2 flex gap-2 bg-zen-surface/50">
