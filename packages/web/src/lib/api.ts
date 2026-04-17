@@ -18,6 +18,7 @@ export interface PRFile {
   status: "added" | "modified" | "removed" | "renamed";
   patch: string;
   previousPath?: string;
+  viewed?: boolean;
 }
 
 export interface PRComment {
@@ -45,6 +46,7 @@ export interface PRPayload {
   fileOrder: string[];
   comments: PRComment[];
   commits: PRCommit[];
+  pullRequestId: string;
 }
 
 const BASE = "";
@@ -105,4 +107,11 @@ export const api = {
     }),
 
   poll: () => fetchJSON<{ comments: PRComment[] }>("/api/poll"),
+
+  setViewed: (path: string, viewed: boolean) =>
+    fetchJSON<{ ok: boolean }>("/api/files/viewed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, viewed }),
+    }),
 };

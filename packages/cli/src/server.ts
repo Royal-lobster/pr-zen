@@ -7,6 +7,7 @@ import {
   replyToComment,
   submitReview,
   fetchCommentsSince,
+  setFileViewed,
 } from "./github";
 import { getFileOrder } from "./deps";
 import { join, resolve } from "path";
@@ -142,6 +143,30 @@ export function startServer(config: ServerConfig): {
         );
         if (cachedPayload) cachedPayload.comments.push(comment);
         return Response.json(comment, { headers: corsHeaders });
+      }
+
+      if (path === "/api/files/viewed" && req.method === "POST") {
+        const { path: filePath, viewed } = (await req.json()) as {
+          path: string;
+          viewed: boolean;
+        };
+        if (
+          typeof filePath !== "string" ||
+          filePath.trim().length === 0 ||
+          typeof viewed !== "boolean"
+        ) {
+          return Response.json(
+            { error: "path (non-empty string) and viewed (boolean) are required" },
+            { status: 400, headers: corsHeaders }
+          );
+        }
+        if (!cachedPayload) {
+          cachedPayload = await loadPR();
+        }
+        await setFileViewed(cachedPayload.pullRequestId, filePath, viewed);
+        const file = cachedPayload.files.find((f) => f.path === filePath);
+        if (file) file.viewed = viewed;
+        return Response.json({ ok: true }, { headers: corsHeaders });
       }
 
       if (path === "/api/comments/reply" && req.method === "POST") {

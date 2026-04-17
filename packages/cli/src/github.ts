@@ -45,6 +45,7 @@ export interface PRFile {
   status: "added" | "modified" | "removed" | "renamed";
   patch: string;
   previousPath?: string;
+  viewed?: boolean;
 }
 
 export interface PRComment {
@@ -71,6 +72,78 @@ export interface PRPayload {
   files: PRFile[];
   comments: PRComment[];
   commits: PRCommit[];
+  pullRequestId: string;
+}
+
+interface GraphQLViewedFile {
+  path: string;
+  viewerViewedState: "VIEWED" | "NOT_VIEWED" | "DISMISSED";
+}
+
+async function graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  const kit = await getOctokit();
+  return (await kit.graphql(query, variables)) as T;
+}
+
+export async function fetchViewedState(
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<{ pullRequestId: string; viewed: Map<string, boolean> }> {
+  const viewed = new Map<string, boolean>();
+  let cursor: string | null = null;
+  let pullRequestId = "";
+
+  while (true) {
+    const res: {
+      repository: {
+        pullRequest: {
+          id: string;
+          files: {
+            nodes: GraphQLViewedFile[];
+            pageInfo: { hasNextPage: boolean; endCursor: string | null };
+          };
+        };
+      };
+    } = await graphql(
+      `query($owner:String!,$repo:String!,$num:Int!,$cursor:String){
+        repository(owner:$owner,name:$repo){
+          pullRequest(number:$num){
+            id
+            files(first:100, after:$cursor){
+              nodes{ path viewerViewedState }
+              pageInfo{ hasNextPage endCursor }
+            }
+          }
+        }
+      }`,
+      { owner, repo, num: prNumber, cursor }
+    );
+
+    pullRequestId = res.repository.pullRequest.id;
+    for (const f of res.repository.pullRequest.files.nodes) {
+      viewed.set(f.path, f.viewerViewedState === "VIEWED");
+    }
+    if (!res.repository.pullRequest.files.pageInfo.hasNextPage) break;
+    cursor = res.repository.pullRequest.files.pageInfo.endCursor;
+  }
+
+  return { pullRequestId, viewed };
+}
+
+export async function setFileViewed(
+  pullRequestId: string,
+  path: string,
+  viewed: boolean
+): Promise<void> {
+  const mutation = viewed
+    ? `mutation($id:ID!,$path:String!){
+         markFileAsViewed(input:{pullRequestId:$id,path:$path}){ clientMutationId }
+       }`
+    : `mutation($id:ID!,$path:String!){
+         unmarkFileAsViewed(input:{pullRequestId:$id,path:$path}){ clientMutationId }
+       }`;
+  await graphql(mutation, { id: pullRequestId, path });
 }
 
 export async function fetchPR(
@@ -80,7 +153,7 @@ export async function fetchPR(
 ): Promise<PRPayload> {
   const kit = await getOctokit();
 
-  const [prRes, filesData, commentsData, reviewCommentsData, commitsData] =
+  const [prRes, filesData, commentsData, reviewCommentsData, commitsData, viewedState] =
     await Promise.all([
       kit.pulls.get({ owner, repo, pull_number: prNumber }),
       kit.paginate(kit.pulls.listFiles, {
@@ -107,6 +180,7 @@ export async function fetchPR(
         pull_number: prNumber,
         per_page: 100,
       }),
+      fetchViewedState(owner, repo, prNumber),
     ]);
 
   const pr: PRMetadata = {
@@ -139,6 +213,7 @@ export async function fetchPR(
     patch: f.patch ?? "",
     previousPath:
       f.status === "renamed" ? f.previous_filename : undefined,
+    viewed: viewedState.viewed.get(f.filename) ?? false,
   }));
 
   const prComments: PRComment[] = commentsData.map((c) => ({
@@ -179,7 +254,7 @@ export async function fetchPR(
     date: c.commit.author?.date ?? "",
   }));
 
-  return { pr, files, comments, commits };
+  return { pr, files, comments, commits, pullRequestId: viewedState.pullRequestId };
 }
 
 export async function fetchCommitDiff(
