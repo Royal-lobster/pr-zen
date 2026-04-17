@@ -22,20 +22,29 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 const TabsTrigger = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "relative flex-1 py-2.5 text-xs font-medium text-center transition-colors",
+      "group relative flex-1 py-2.5 text-xs font-medium transition-colors",
       "text-zen-muted hover:text-zen-text-secondary",
       "data-[state=active]:text-zen-text",
-      "after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[2px]",
-      "after:bg-zen-accent after:rounded-full after:scale-x-0",
-      "data-[state=active]:after:scale-x-100 after:transition-transform after:duration-200",
+      "flex items-center justify-center",
       className
     )}
     {...props}
-  />
+  >
+    <span className="relative inline-flex items-center justify-center">
+      {children}
+      <span
+        className={cn(
+          "absolute -bottom-2.5 left-0 right-0 h-[2px] rounded-full bg-zen-accent",
+          "scale-x-0 group-data-[state=active]:scale-x-100",
+          "transition-transform duration-200"
+        )}
+      />
+    </span>
+  </TabsPrimitive.Trigger>
 ));
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
